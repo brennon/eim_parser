@@ -1,4 +1,5 @@
 from pymongo import MongoClient
+from eim_parser import EIMParserLogger
 
 def recursive_update(old_dict, new_dict):
     """
@@ -18,27 +19,32 @@ def recursive_update(old_dict, new_dict):
             old_dict[k] = new_dict[k]
 
 class EIMDBConnector():
-    def __init__(self):
+    def __init__(self, logger=None):
         self._client = None
+        if logger == None:
+            self.logger = EIMParserLogger()
+        else:
+            self.logger = logger
 
-    def connect(self, hostname='data.musicsensorsemotion.com', port=27017):
+    def connect(self, hostname='muse.cc.vt.edu', port=27017):
         """
         Connects to the EiM database.
 
         >>> c = EIMDBConnector()
         >>> c.connect()
-        True
 
         >>> del c
         >>> c = EIMDBConnector()
-        >>> c.connect('thishostshouldnot.exist.right.com')
-        False
+        >>> c.connect('thishostshouldnot.exist.right.com') # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+            ...
+        pymongo.errors.ConnectionFailure:
         """
         try:
             self._client = MongoClient(hostname, port)
-            return True
         except:
-            return False
+            self.logger.log('Could not connect to database on %s:%d' % (hostname, port), 'FAILURE')
+            raise
 
     def disconnect(self):
         """
@@ -52,14 +58,13 @@ class EIMDBConnector():
 
         >>> c = EIMDBConnector()
         >>> c.connect()
+        >>> c.authenticate_to_database('eim', 'eim', 'emotoheaven')
+        >>> c.find_by_session_id(-1) == None
         True
-        >>> c.authenticate_to_database('test', 'eim', 'testest123')
+        >>> res = c.upsert_by_session_id(123456789, {'session_id':123456789})
+        >>> c.find_by_session_id(123456789)['session_id'] == 123456789
         True
-        >>> c.find_by_session_id(-1, 'test', 'test') == None
-        True
-
-        >>> c.find_by_session_id(123456789, 'test', 'test')['session_id'] == 123456789.0
-        True
+        >>> res = c.remove_by_session_id(123456789)
         """
         db = self._client[database]
         return db["%s" % collection].find_one({'session_id':session_id})
@@ -70,22 +75,14 @@ class EIMDBConnector():
 
         >>> c = EIMDBConnector()
         >>> c.connect()
-        True
-        >>> c.authenticate_to_database('test', 'eim', 'testest123')
-        True
-        >>> upsert_result = c.upsert_by_session_id(12345677, {'session_id':12345677}, 'test', 'test')
-        >>> upsert_result['err'] == None
-        True
-        >>> upsert_result['n']
+        >>> c.authenticate_to_database('eim', 'eim', 'emotoheaven')
+        >>> res = c.upsert_by_session_id(123456789, {'session_id':123456789})
+        >>> res = c.remove_by_session_id(123456789)
+        >>> res['n']
         1
-        >>> remove_result = c.remove_by_session_id(12345677, 'test', 'test')
-        >>> remove_result['n']
-        1
-        >>> remove_result['err'] == None
+        >>> res['err'] == None
         True
-
-        >>> c.find_by_session_id(12345677, 'test', 'test') == None
-        True
+        >>> c.find_by_session_id(123456789)
         """
         db = self._client[database]
         return db["%s" %collection].remove({'session_id':session_id})
@@ -96,34 +93,33 @@ class EIMDBConnector():
 
         >>> c = EIMDBConnector()
         >>> c.connect()
-        True
-        >>> c.authenticate_to_database('test', 'eim', 'testest123')
-        True
+        >>> c.authenticate_to_database('eim', 'eim', 'emotoheaven')
+        >>> res = c.upsert_by_session_id(123456789, {'session_id':123456789})
         >>> import random
         >>> n = random.random()
-        >>> upsert_result = c.upsert_by_session_id(123456789, {'updated_key':n}, 'test', 'test')
-        >>> upsert_result['err'] == None
+
+        >>> c.find_by_session_id(123456789)['updated_key']
+        Traceback (most recent call last):
+            ...
+        KeyError: 'updated_key'
+
+        >>> res = c.upsert_by_session_id(123456789, {'updated_key':n})
+        >>> res['err'] == None
         True
-        >>> upsert_result['n']
+        >>> res['n']
         1
-        >>> c.find_by_session_id(123456789, 'test', 'test')['updated_key'] == n
+        >>> c.find_by_session_id(123456789)['updated_key'] == n
         True
 
-        >>> upsert_result = c.upsert_by_session_id(123456789, {'updated_key':n+1}, 'test', 'test')
-        >>> upsert_result['err'] == None
+        >>> res = c.upsert_by_session_id(123456789, {'updated_key':n+1})
+        >>> res['err'] == None
         True
-        >>> upsert_result['n']
+        >>> res['n']
         1
-        >>> c.find_by_session_id(123456789, 'test', 'test')['updated_key'] == n
-        False
+        >>> c.find_by_session_id(123456789)['updated_key'] == n + 1
+        True
 
-        >>> upsert_result = c.upsert_by_session_id(123456788, {'session_id':123456788}, 'test', 'test')
-        >>> upsert_result['err'] == None
-        True
-        >>> upsert_result['n']
-        1
-        >>> c.find_by_session_id(123456788, 'test', 'test')['session_id']
-        123456788
+        >>> res = c.remove_by_session_id(123456789)
         """
         db = self._client[database]
         existing_document = self.find_by_session_id(session_id, database, collection)
@@ -137,7 +133,7 @@ class EIMDBConnector():
             find_result = db["%s" % collection].update({'session_id':session_id}, existing_document, upsert=True)
             return find_result
         except:
-            return None
+            self.logger.log('Could find or update document with session ID: %s' % session_id, 'WARN')
 
     def authenticate_to_database(self, database, username, password):
         """
@@ -145,12 +141,14 @@ class EIMDBConnector():
 
         >>> c = EIMDBConnector()
         >>> c.connect()
-        True
-        >>> c.authenticate_to_database('test', 'eim', 'testest123')
-        True
+        >>> c.authenticate_to_database('eim', 'eim', 'emotoheaven')
         """
         db = self._client[database]
-        return db.authenticate(username, password)
+        try:
+            db.authenticate(username, password)
+        except PyMongoError:
+            self.logger.log('Could not authenticate to database', 'FAILURE')
+            raise
 
 def __test():
     import doctest

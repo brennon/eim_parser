@@ -1,14 +1,15 @@
 from optparse import OptionParser
-import os
-import re
-import pymongo
-from eim_parser import EIMInfoParser
+import os, re, sys, pymongo
+from eim_parser import EIMParserLogger
+from eim_info_parser import EIMInfoParser
+from eim_test_parser import EIMTestParser, EIMSongParser
 from eim_db_connector import EIMDBConnector
 from pprint import pprint
 
 def main():
     usage = "usage: %prog [base_directory]"
     parser = OptionParser(usage=usage)
+    logger = EIMParserLogger('INFO')
 
     root_dir = os.getcwd()
 
@@ -20,13 +21,13 @@ def main():
         for f in files:
             if re.search('.txt$', f):
                 filepath = "%s/%s" % (root, f)
-                print(filepath)
+                logger.log('Adding %s to worklist' % filepath, 'INFO')
                 file_list.append(filepath)
             else:
                 ignored_files.append(f)
 
-    print("Parsing %d .txt files below %s" % (len(file_list), root_dir))
-    print("Ignoring %d files" % len(ignored_files))
+    logger.log("Parsing %d .txt files below %s" % (len(file_list), root_dir), 'INFO')
+    logger.log("Ignoring %d files" % len(ignored_files), 'INFO')
 
     # Determine data file types from among:
     # reset, test, info, answers, debug, and song
@@ -41,9 +42,14 @@ def main():
             }
 
     # Create database connector
-    db = EIMDBConnector()
-    db.connect()
-    db.authenticate_to_database('eim', 'eim', 'emotoheaven')
+    db = EIMDBConnector(logger)
+
+    try:
+        db.connect()
+        db.authenticate_to_database('eim', 'eim', 'emotoheaven')
+    except:
+        print('Could not connect and authenticate to database--exiting.')
+        sys.exit()
 
     # Iterate over collected files
     for f in file_list:
@@ -57,30 +63,77 @@ def main():
         # Is this an info file?
         if re.search('T\d_S\d{4,}_1nfo.txt', f):
             # Parse info file
-            print("Parsing %s" % f)
+            logger.log("Parsing %s" % f, 'INFO')
 
             # Build and use an EIMInfoParser for this file
-            p = EIMInfoParser(f)
-            p.parse()
-            info_dict = p.to_dict()
-            pprint(info_dict)
-
-            # Insert in database using EIMDBConnector
             try:
-                db.upsert_by_session_id(info_dict['session_id'], info_dict)
-                print("\tSuccess!")
+                p = EIMInfoParser(f, logger)
+                p.parse()
+                info_dict = p.to_dict()
+
+                # Insert in database using EIMDBConnector
+                try:
+                    db.upsert_by_session_id(info_dict['session_id'], info_dict)
+                    logger.log("Inserting data from %s" % f, 'INFO')
+                except:
+                    logger.log("Error when inserting data from %s" % f, 'ERROR')
+                    raise
             except:
-                print("\tFailed")
+                logger.log("Error parsing %s" % f, 'ERROR')
 
             # Update counts
             type_counts['INFO'] += 1
 
-        """
         # Is this a test file?
         elif re.search('T\d_S\d{4,}_TEST.txt', f):
-            # Parse test file
+            # Parse text file
+            logger.log("Parsing %s" % f, 'INFO')
+
+            # Build and use an EIMTestParser for this file
+            try:
+                p = EIMTestParser(f, logger)
+                p.parse()
+                test_dict = p.to_dict()
+
+                # Insert in database using EIMDBConnector
+                try:
+                    db.upsert_by_session_id(test_dict['session_id'], test_dict)
+                    logger.log("Inserting data from %s" % f, 'INFO')
+                except:
+                    logger.log("Error when inserting data from %s" % f, 'ERROR')
+                    raise
+            except:
+                logger.log("Error parsing %s" % f, 'ERROR')
+
+            # Update counts
             type_counts['TEST'] += 1
 
+        # Is this a song file?
+        elif re.search('T\d_S\d{4,}_[HRST]\d{3,}.txt', f):
+            # Parse text file
+            logger.log("Parsing %s" % f, 'INFO')
+
+            # Build and use an EIMSongParser for this file
+            try:
+                p = EIMSongParser(f, logger)
+                p.parse()
+                song_dict = p.to_dict()
+
+                # Insert in database using EIMDBConnector
+                try:
+                    db.upsert_by_session_id(song_dict['session_id'], song_dict)
+                    logger.log("Inserting data from %s" % f, 'INFO')
+                except:
+                    logger.log("Error when inserting data from %s" % f, 'ERROR')
+                    raise
+            except:
+                logger.log("Error parsing %s" % f, 'ERROR')
+
+            # Parse song file
+            type_counts['SONG'] += 1
+
+
+        """
         # Is this an answer file?
         elif re.search('T\d_S\d{4,}_answers.txt', f):
             # Parse answer file
@@ -91,18 +144,13 @@ def main():
             # Parse debug file
             type_counts['DEBUG'] += 1
 
-        # Is this a song file?
-        elif re.search('T\d_S\d{4,}_[HRST]\d{3,}.txt', f):
-            # Parse song file
-            type_counts['SONG'] += 1
-
         else:
             type_counts['UNKNOWN'] += 1
             print("WARNING - Unrecognized file:",f)
-
         """
 
-    print(type_counts)
+
+    logger.log(type_counts, 'INFO')
 
 if __name__ == "__main__":
     main()

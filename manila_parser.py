@@ -3,6 +3,8 @@ import os, re, sys, pymongo
 from eim_parser import EIMParserLogger
 from eim_info_parser import EIMInfoParser
 from eim_test_parser import EIMTestParser, EIMSongParser
+from eim_answers_parser import EIMAnswersParser
+from eim_debug_parser import EIMDebugParser
 from eim_db_connector import EIMDBConnector
 from pprint import pprint
 
@@ -86,7 +88,7 @@ def main():
 
         # Is this a test file?
         elif re.search('T\d_S\d{4,}_TEST.txt', f):
-            # Parse text file
+            # Parse test file
             logger.log("Parsing %s" % f, 'INFO')
 
             # Build and use an EIMTestParser for this file
@@ -110,7 +112,7 @@ def main():
 
         # Is this a song file?
         elif re.search('T\d_S\d{4,}_[HRST]\d{3,}.txt', f):
-            # Parse text file
+            # Parse song file
             logger.log("Parsing %s" % f, 'INFO')
 
             # Build and use an EIMSongParser for this file
@@ -129,26 +131,62 @@ def main():
             except:
                 logger.log("Error parsing %s" % f, 'ERROR')
 
-            # Parse song file
+            # Update counts
             type_counts['SONG'] += 1
 
-
-        """
         # Is this an answer file?
         elif re.search('T\d_S\d{4,}_answers.txt', f):
+
             # Parse answer file
+            logger.log("Parsing %s" % f, 'INFO')
+
+            # Build and use an EIMAnswersParser for this file
+            try:
+                p = EIMAnswersParser(f, logger)
+                p.parse()
+                answers_dict = p.to_dict()
+
+                # Insert in database using EIMDBConnector
+                try:
+                    db.upsert_by_session_id(answers_dict['session_id'], answers_dict)
+                    logger.log("Inserting data from %s" % f, 'INFO')
+                except:
+                    logger.log("Error when inserting data from %s" % f, 'ERROR')
+                    raise
+            except:
+                logger.log("Error parsing %s" % f, 'ERROR')
+
+            # Update counts
             type_counts['ANSWERS'] += 1
 
         # Is this a debug file?
         elif re.search('T\d_S\d{4,}_debug.txt', f):
+
             # Parse debug file
+            logger.log("Parsing %s" % f, 'INFO')
+
+            # Build and use an EIMDebugParser for this file
+            try:
+                p = EIMDebugParser(f, logger)
+                p.parse()
+                debug_dict = p.to_dict()
+
+                # Insert in database using EIMDBConnector
+                try:
+                    db.upsert_by_session_id(debug_dict['session_id'], debug_dict)
+                    logger.log("Inserting data from %s" % f, 'INFO')
+                except:
+                    logger.log("Error when inserting data from %s" % f, 'ERROR')
+                    raise
+            except:
+                logger.log("Error parsing %s" % f, 'ERROR')
+
+            # Update counts
             type_counts['DEBUG'] += 1
 
         else:
             type_counts['UNKNOWN'] += 1
             print("WARNING - Unrecognized file:",f)
-        """
-
 
     logger.log(type_counts, 'INFO')
 

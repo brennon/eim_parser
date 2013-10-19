@@ -1,4 +1,4 @@
-from eim_parser import EIMParser, EIMParserLogger, EIMParsingError
+from eim_parser import EIMParser, EIMParsingError
 import re, datetime, sys
 
 class EIMInfoParser(EIMParser):
@@ -74,9 +74,9 @@ class EIMInfoParser(EIMParser):
 
             elif tag[:-1] == 'SONG':
                 self.parse_song_timestamp_line(line)
+
         else:
-            self.logger.log('Unprocessed line in %s: %s' % (self._filepath, line), 'WARN')
-            raise eim_parser.EIMParsingError('Unprocessed line in %s: %s' % (self._filepath, line))
+            raise EIMParsingError('Unprocessed line: %s:%d' % (self._filepath, number))
 
     def parse_songs_line(self, line):
         """
@@ -93,14 +93,12 @@ class EIMInfoParser(EIMParser):
         >>> p.parse_songs_line('no songs here')
         Traceback (most recent call last):
             ...
-        eim_parser.EIMParsingError: No songs found in song line in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt
+        eim_parser.EIMParsingError: No songs found in song line: ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt
         """
         regex = re.compile('([HRST]\d{3})')
         songs = regex.findall(line)
         if len(songs) == 0:
-            self.logger.log("No songs found in song line in %s"
-                    % self._filepath, 'WARN')
-            raise EIMParsingError("No songs found in song line in %s"
+            raise EIMParsingError("No songs found in song line: %s"
                     % self._filepath)
         self._songs = {"order":songs}
 
@@ -108,18 +106,15 @@ class EIMInfoParser(EIMParser):
         """
         Throws an exception if _date is not set.
 
-        >>> f = open('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt', 'r')
-        >>> f.close()
         >>> p = EIMInfoParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt')
         >>> p._date = None
-        >>> p.ensure_date_set('set the date!')
+        >>> p.ensure_date_set(None)
         Traceback (most recent call last):
             ...
-        eim_parser.EIMParsingError: set the date!
+        eim_parser.EIMParsingError: Date not parsed and set in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt
         """
         if not self._date:
-            self.logger.log('Date not parsed and set in %s' % self._filepath, 'ERROR')
-            raise EIMParsingError(message)
+            raise EIMParsingError('Date not parsed and set in %s' % self._filepath)
 
     def parse_timestamp_line(self, line):
         """
@@ -143,20 +138,12 @@ class EIMInfoParser(EIMParser):
         Traceback (most recent call last):
             ...
         eim_parser.EIMParsingError: No valid timestamp found for START in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt
-
-        >>> p._date = None
-        >>> p.parse_timestamp_line('START , symbol "12:57:39" ;')
-        Traceback (most recent call last):
-            ...
-        eim_parser.EIMParsingError: Trying to parse timestamps before date is set in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt
         """
         self.ensure_date_set("Trying to parse timestamps before date is set in %s"
                     % self._filepath)
 
         tag_match = re.search('(START|TEST|END)', line)
         if not tag_match:
-            self.logger.log("No valid timestamp marker found in %s"
-                    % self._filepath, 'WARN')
             raise EIMParsingError("No valid timestamp marker found in %s"
                     % self._filepath)
         else:
@@ -165,8 +152,6 @@ class EIMInfoParser(EIMParser):
         time_match = re.search('(\d{2}):(\d{2}):(\d{2})', line)
 
         if not time_match or len(time_match.groups()) != 3:
-            self.logger.log("No valid timestamp found for %s in %s"
-                    % (tag, self._filepath), 'WARN')
             raise EIMParsingError("No valid timestamp found for %s in %s"
                     % (tag, self._filepath))
         else:
@@ -206,12 +191,6 @@ class EIMInfoParser(EIMParser):
         Traceback (most recent call last):
             ...
         eim_parser.EIMParsingError: No valid timestamp found for song 2 in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt
-
-        >>> p._date = None
-        >>> p.parse_song_timestamp_line('START , symbol "12:57:39" ;')
-        Traceback (most recent call last):
-            ...
-        eim_parser.EIMParsingError: Trying to parse song timestamps before date is set in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt
         """
 
         self.ensure_date_set("Trying to parse song timestamps before date is set in %s"
@@ -219,8 +198,6 @@ class EIMInfoParser(EIMParser):
 
         song_match = re.search('song(\d)', line)
         if not song_match:
-            self.logger.log("No valid song tag found in %s"
-                    % self._filepath, 'WARN')
             raise EIMParsingError("No valid song tag found in %s"
                     % self._filepath)
         else:
@@ -229,8 +206,6 @@ class EIMInfoParser(EIMParser):
         time_match = re.search('(\d{2}):(\d{2}):(\d{2})', line)
 
         if not time_match or len(time_match.groups()) != 3:
-            self.logger.log("No valid timestamp found for song %d in %s"
-                    % (int(song), self._filepath), 'WARN')
             raise EIMParsingError("No valid timestamp found for song %d in %s"
                     % (int(song), self._filepath))
         else:
@@ -269,8 +244,6 @@ class EIMInfoParser(EIMParser):
             (month, day, year) = date_components.groups()
             self._date = datetime.date(int(year), int(month), int(day))
         else:
-            self.logger.log("No date found in date line in %s"
-                    % self._filepath, 'WARN')
             raise EIMParsingError("No date found in date line in %s"
                     % self._filepath)
 

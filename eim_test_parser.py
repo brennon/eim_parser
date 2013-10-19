@@ -1,4 +1,4 @@
-from eim_parser import EIMParser, EIMParserLogger, EIMParsingError, timestamp_to_millis
+from eim_parser import EIMParser, EIMParsingError, timestamp_to_millis
 import re, datetime, sys
 
 class EIMTestParser(EIMParser):
@@ -91,7 +91,6 @@ class EIMTestParser(EIMParser):
             self._hr.append(float(match.groups()[5]))
             self._hr_status.append(int(match.groups()[6]))
         else:
-            self.logger.log('Malformed line in \'%s:%d\': %s' % (self._filepath, number, line), 'WARN')
             raise EIMParsingError('Malformed line in \'%s:%d\': %s' % (self._filepath, number, line))
 
 class EIMSongParser(EIMTestParser):
@@ -140,8 +139,7 @@ class EIMSongParser(EIMTestParser):
                 'hr_status':self._hr_status}
             return data
         else:
-            self.logger.log("Could not find a valid song label in %s" % self._filepath, 'WARN')
-            raise EIMParsingError("Could not find a valid song label in %s" % self._filepath, 'WARN')
+            raise EIMParsingError("Could not find a valid song label in %s" % self._filepath)
 
 def __test():
     import doctest

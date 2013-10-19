@@ -1,4 +1,4 @@
-import re, datetime, sys
+import re, datetime, sys, logging
 
 experiment_locations = ['DUBLIN', 'NYC', 'BERGEN', 'SINGAPORE', 'MANILA']
 
@@ -65,7 +65,8 @@ class EIMParser():
         if filepath == None: raise ValueError('A filepath must be provided')
 
         if logger == None:
-            self.logger = EIMParserLogger()
+            self.logger = logging.getLogger('eim_parser')
+            self.logger.setLevel(logging.DEBUG)
         else:
             self.logger = logger
 
@@ -90,11 +91,6 @@ class EIMParser():
       >>> p = EIMParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt')
       >>> p._experiment_metadata['location']
       'Manila'
-
-      >>> p = EIMParser('./data/COLUMBUS/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt')
-      Traceback (most recent call last):
-          ...
-      EIMParsingError: Could not find a location
       """
       match = None
       for location in experiment_locations:
@@ -103,8 +99,7 @@ class EIMParser():
           self._experiment_metadata['location'] = match.groups()[0].lower().capitalize()
           return
 
-      self.logger.log('Could not determine location for %s' % self._filepath, 'ERROR')
-      raise EIMParsingError("Could not find a location")
+      raise EIMParsingError('Could not determine location for %s' % self._filepath)
 
     def gather_terminal(self):
         match = None
@@ -113,7 +108,6 @@ class EIMParser():
             self._experiment_metadata['terminal'] = int(match.groups()[0])
             return
 
-        self.logger.log('Could not determine terminal number for %s' % self._filepath, 'ERROR')
         raise EIMParsingError('Could not determine terminal number for %s' % self._filepath)
 
     def filepath(self):
@@ -132,30 +126,26 @@ class EIMParser():
         """
         Opens the file at filepath and stores descriptor.
 
-        >>> f = open('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/.T4_S9898.T4_S9898_test.txt', 'w')
-        >>> f.close()
-        >>> parser = EIMParser(filepath = './data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/.T4_S9898.T4_S9898_test.txt')
+        >>> f = open('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/.T4_S9999_test.txt', 'a')
+        >>> parser = EIMParser(filepath = './data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/.T4_S9999_test.txt')
         >>> parser.open_file()
         True
+
         >>> parser._file.name
-        './data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/.T4_S9898.T4_S9898_test.txt'
+        './data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/.T4_S9999_test.txt'
+
         >>> parser._file.closed
         False
+
         >>> parser.close_file()
         >>> import os
         >>> os.unlink(f.name)
-
-        >>> parser = EIMParser(filepath = 'nothere.txt')
-        Traceback (most recent call last):
-            ...
-        EIMParsingError: Could not find a location
         """
         try:
             self._file = open(self._filepath, 'r')
             return True
         except FileNotFoundError:
-            self.logger.log('Could not open %s' % self._filepath, 'ERROR')
-            raise
+            raise EIMParsingError('Could not open %s' % self._filepath)
 
     def close_file(self):
         """
@@ -188,23 +178,25 @@ class EIMParser():
                     try:
                         self.parse_line(line, number + 1)
                     except:
-                        pass
+                        self.logger.error(e)
                     break
 
             # Parse all lines
             for number, line in enumerate(lines):
                 try:
                     self.parse_line(line, number + 1)
-                except:
-                    pass
+                except Exception as e:
+                    self.logger.error(e)
 
             # Parse session id
             match = re.search('T\d_S(\d{4})_.*.txt', self._filepath)
             if match:
                 self._experiment_metadata['session_id'] = int(match.groups()[0])
             else:
-                self.logger.log("Could not find a valid session ID in %s" % self._filepath, 'WARN')
                 raise EIMParsingError("No valid session id found in filename %s" % self._filepath)
+
+        except:
+            raise
 
         finally:
             if self._file and not self._file.closed:

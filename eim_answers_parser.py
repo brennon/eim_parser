@@ -1,4 +1,4 @@
-from eim_parser import EIMParser, EIMParserLogger, EIMParsingError
+from eim_parser import EIMParser, EIMParsingError
 import re, datetime, sys
 
 class EIMAnswersParser(EIMParser):
@@ -233,6 +233,11 @@ class EIMAnswersParser(EIMParser):
         >>> p.parse_line('"05_Music_Style_Hip_Hop" , 1 ;', 38)
         >>> p.music_styles['hip_hop']
         True
+
+        >>> p.parse_line('SOME CRAZY LINE', 98)
+        Traceback (most recent call last):
+            ...
+        eim_parser.EIMParsingError: Unprocessed line: ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:98 SOME CRAZY LINE
         """
         if re.search('SEX', line.upper()):
             self.parse_sex_line(line, number)
@@ -268,8 +273,7 @@ class EIMAnswersParser(EIMParser):
             self.parse_music_style_line(line, number)
 
         else:
-            self.logger.log('Unprocessed line in %s: %s' % (self._filepath, line), 'WARN')
-            raise EIMParsingError('Unprocessed line in %s: %s' % (self._filepath, line))
+            raise EIMParsingError('Unprocessed line: %s:%d %s' % (self._filepath, number, line))
 
     def parse_most_enjoyed_engaged_line(self, line, number):
         """
@@ -280,10 +284,14 @@ class EIMAnswersParser(EIMParser):
         >>> p.most_enjoyed
         3
 
-        >>> p = EIMAnswersParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt')
         >>> p.parse_most_enjoyed_engaged_line('FinalQ_Most_Engaged , 4 ;', 1)
         >>> p.most_engaged
         4
+
+        >>> p.parse_most_enjoyed_engaged_line('BAD LINE', 1)
+        Traceback (most recent call last):
+            ...
+        eim_parser.EIMParsingError: Invalid most enjoyed / engaged line: ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
         """
         match = re.search('FinalQ_Most_(\w+) , (\d+) ;', line)
         if match:
@@ -292,9 +300,7 @@ class EIMAnswersParser(EIMParser):
             elif match.groups()[0] == 'Engaged':
                 self.most_engaged = int(match.groups()[1])
         else:
-            self.logger.log("Invalid most enjoyed / engaged line in %s:%d"
-                    % (self._filepath, number), 'WARN')
-            raise EIMParsingError("Invalid most enjoyed / engaged line in %s:%d"
+            raise EIMParsingError("Invalid most enjoyed / engaged line: %s:%d"
                     % (self._filepath, number))
 
     def parse_musical_expertise_line(self, line, number):
@@ -306,19 +312,16 @@ class EIMAnswersParser(EIMParser):
         >>> p.musical_expertise
         3
 
-        >>> p = EIMAnswersParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt')
         >>> p.parse_musical_expertise_line('"03_Musical_Expertise" , symbol Lots ;', 1)
         Traceback (most recent call last):
             ...
-        eim_parser.EIMParsingError: Invalid musical expertise line in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
+        eim_parser.EIMParsingError: Invalid musical expertise line: ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
         """
         match = re.search(', (\d+) ;', line)
         if match:
             self.musical_expertise = int(match.groups()[0])
         else:
-            self.logger.log("Invalid musical expertise line in %s:%d"
-                    % (self._filepath, number), 'WARN')
-            raise EIMParsingError("Invalid musical expertise line in %s:%d"
+            raise EIMParsingError("Invalid musical expertise line: %s:%d"
                     % (self._filepath, number))
 
     def parse_music_style_line(self, line, number):
@@ -330,10 +333,14 @@ class EIMAnswersParser(EIMParser):
         >>> p.music_styles['pop']
         True
 
-        >>> p = EIMAnswersParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt')
         >>> p.parse_music_style_line('"05_Music_Style_None" , 0 ;', 1)
         >>> p.music_styles['none']
         False
+
+        >>> p.parse_music_style_line('BAD LINE', 1)
+        Traceback (most recent call last):
+            ...
+        eim_parser.EIMParsingError: Invalid music style line: ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
         """
         match = re.search('".+Style_(\w+)" , (\d) ;', line)
         if match:
@@ -347,9 +354,7 @@ class EIMAnswersParser(EIMParser):
                 self.music_styles = dict()
             self.music_styles[style] = value
         else:
-            self.logger.log("Invalid music style line in %s:%d"
-                    % (self._filepath, number), 'WARN')
-            raise EIMParsingError("Invalid music style line in %s:%d"
+            raise EIMParsingError("Invalid music style line: %s:%d"
                     % (self._filepath, number))
 
     def parse_emotion_index_line(self, line, number):
@@ -360,6 +365,11 @@ class EIMAnswersParser(EIMParser):
         >>> p.parse_emotion_index_line('"EmotionIndex2" , 36.4641 ;', 1)
         >>> p.emotion_indices['2']
         36.4641
+
+        >>> p.parse_emotion_index_line('BAD LINE', 1)
+        Traceback (most recent call last):
+            ...
+        eim_parser.EIMParsingError: Invalid emotion index line: ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
         """
         match = re.search('"EmotionIndex(\w+)" , (\d+\.\d+) ;', line)
         if match:
@@ -369,9 +379,7 @@ class EIMAnswersParser(EIMParser):
             value = float(match.groups()[1])
             self.emotion_indices[number] = value
         else:
-            self.logger.log("Invalid emotion index line in %s:%d"
-                    % (self._filepath, number), 'WARN')
-            raise EIMParsingError("Invalid emotion index line in %s:%d"
+            raise EIMParsingError("Invalid emotion index line: %s:%d"
                     % (self._filepath, number))
 
     def parse_song_scale_line(self, line, number):
@@ -382,6 +390,11 @@ class EIMAnswersParser(EIMParser):
         >>> p.parse_song_scale_line('"Song2_Scale4_Power" , 5 ;', 1)
         >>> p.song_scales['2']['power']
         5
+
+        >>> p.parse_song_scale_line('BAD LINE', 1)
+        Traceback (most recent call last):
+            ...
+        eim_parser.EIMParsingError: Invalid song scale line: ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
         """
         match = re.search('"Song(\d+)_Scale\d+_(\w+)" , (\d+) ;', line)
         if match:
@@ -394,9 +407,7 @@ class EIMAnswersParser(EIMParser):
                 self.song_scales[number] = dict()
             self.song_scales[match.groups()[0]][scale] = value
         else:
-            self.logger.log("Invalid song scale line in %s:%d"
-                    % (self._filepath, number), 'WARN')
-            raise EIMParsingError("Invalid song scale line in %s:%d"
+            raise EIMParsingError("Invalid song scale line: %s:%d"
                     % (self._filepath, number))
 
     def parse_visual_impairments_line(self, line, number):
@@ -408,16 +419,14 @@ class EIMAnswersParser(EIMParser):
         >>> p.visual_impairments
         True
 
-        >>> p = EIMAnswersParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt')
         >>> p.parse_visual_impairments_line('"04_Visual_Impairments" , symbol No ;', 1)
         >>> p.visual_impairments
         False
 
-        >>> p = EIMAnswersParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt')
-        >>> p.parse_visual_impairments_line('"04_Visual_Impairments" , 14 ;', 1)
+        >>> p.parse_visual_impairments_line('BAD LINE', 1)
         Traceback (most recent call last):
             ...
-        eim_parser.EIMParsingError: Invalid visual impairments line in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
+        eim_parser.EIMParsingError: Invalid visual impairments line: ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
         """
         match = re.search('(Yes|No)', line)
         if match:
@@ -426,9 +435,7 @@ class EIMAnswersParser(EIMParser):
             else:
                 self.visual_impairments = False
         else:
-            self.logger.log("Invalid visual impairments line in %s:%d"
-                    % (self._filepath, number), 'WARN')
-            raise EIMParsingError("Invalid visual impairments line in %s:%d"
+            raise EIMParsingError("Invalid visual impairments line: %s:%d"
                     % (self._filepath, number))
 
     def parse_hearing_impairments_line(self, line, number):
@@ -440,16 +447,14 @@ class EIMAnswersParser(EIMParser):
         >>> p.hearing_impairments
         True
 
-        >>> p = EIMAnswersParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt')
         >>> p.parse_hearing_impairments_line('"04_Hearing_Impairments" , symbol No ;', 1)
         >>> p.hearing_impairments
         False
 
-        >>> p = EIMAnswersParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt')
-        >>> p.parse_hearing_impairments_line('"04_Hearing_Impairments" , 14 ;', 1)
+        >>> p.parse_hearing_impairments_line('BAD LINE', 1)
         Traceback (most recent call last):
             ...
-        eim_parser.EIMParsingError: Invalid hearing impairments line in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
+        eim_parser.EIMParsingError: Invalid hearing impairments line: ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
         """
         match = re.search('(Yes|No)', line)
         if match:
@@ -458,9 +463,7 @@ class EIMAnswersParser(EIMParser):
             else:
                 self.hearing_impairments = False
         else:
-            self.logger.log("Invalid hearing impairments line in %s:%d"
-                    % (self._filepath, number), 'WARN')
-            raise EIMParsingError("Invalid hearing impairments line in %s:%d"
+            raise EIMParsingError("Invalid hearing impairments line: %s:%d"
                     % (self._filepath, number))
 
     def parse_musical_background_line(self, line, number):
@@ -472,16 +475,14 @@ class EIMAnswersParser(EIMParser):
         >>> p.musical_background
         True
 
-        >>> p = EIMAnswersParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt')
         >>> p.parse_musical_background_line('"03_Musical_Background" , symbol No ;', 1)
         >>> p.musical_background
         False
 
-        >>> p = EIMAnswersParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt')
-        >>> p.parse_musical_background_line('"03_Musical_Background" , 14 ;', 1)
+        >>> p.parse_musical_background_line('BAD LINE', 1)
         Traceback (most recent call last):
             ...
-        eim_parser.EIMParsingError: Invalid musical background line in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
+        eim_parser.EIMParsingError: Invalid musical background line: ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
         """
         match = re.search('(Yes|No)', line)
         if match:
@@ -490,9 +491,7 @@ class EIMAnswersParser(EIMParser):
             else:
                 self.musical_background = False
         else:
-            self.logger.log("Invalid musical background line in %s:%d"
-                    % (self._filepath, number), 'WARN')
-            raise EIMParsingError("Invalid musical background line in %s:%d"
+            raise EIMParsingError("Invalid musical background line: %s:%d"
                     % (self._filepath, number))
 
     def parse_nationality_line(self, line, number):
@@ -504,24 +503,20 @@ class EIMAnswersParser(EIMParser):
         >>> p.nationality
         'United States'
 
-        >>> p = EIMAnswersParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt')
         >>> p.parse_nationality_line('"02_Nationality" , symbol USA ;', 1)
         >>> p.nationality
         'USA'
 
-        >>> p = EIMAnswersParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt')
-        >>> p.parse_nationality_line('"02_Nationality" , symbol 0 ;', 1)
+        >>> p.parse_nationality_line('BAD LINE', 1)
         Traceback (most recent call last):
             ...
-        eim_parser.EIMParsingError: Invalid nationality line in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
+        eim_parser.EIMParsingError: Invalid nationality line: ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
         """
         match = re.search('symbol ([a-zA-Z ]+) ;', line)
         if match:
             self.nationality = match.groups()[0]
         else:
-            self.logger.log("Invalid nationality line in %s:%d"
-                    % (self._filepath, number), 'WARN')
-            raise EIMParsingError("Invalid nationality line in %s:%d"
+            raise EIMParsingError("Invalid nationality line: %s:%d"
                     % (self._filepath, number))
 
     def parse_dob_line(self, line, number):
@@ -533,19 +528,16 @@ class EIMAnswersParser(EIMParser):
         >>> p.dob
         1979
 
-        >>> p = EIMAnswersParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt')
-        >>> p.parse_dob_line('"01b_DOB" , 23 ;', 1)
+        >>> p.parse_dob_line('BAD LINE', 1)
         Traceback (most recent call last):
             ...
-        eim_parser.EIMParsingError: Invalid DOB line in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
+        eim_parser.EIMParsingError: Invalid DOB line: ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
         """
         match = re.search('(\d{4})', line)
         if match:
             self.dob = int(match.groups()[0])
         else:
-            self.logger.log("Invalid DOB line in %s:%d"
-                    % (self._filepath, number), 'WARN')
-            raise EIMParsingError("Invalid DOB line in %s:%d"
+            raise EIMParsingError("Invalid DOB line: %s:%d"
                     % (self._filepath, number))
 
     def parse_sex_line(self, line, number):
@@ -562,19 +554,16 @@ class EIMAnswersParser(EIMParser):
         >>> p.sex
         'Female'
 
-        >>> p = EIMAnswersParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt')
-        >>> p.parse_sex_line('"01a_Sex" , symbol Huh ;', 1)
+        >>> p.parse_sex_line('BAD LINE', 1)
         Traceback (most recent call last):
             ...
-        eim_parser.EIMParsingError: Invalid sex line in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
+        eim_parser.EIMParsingError: Invalid sex line: ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
         """
         match = re.search('(Male|Female)', line)
         if match:
             self.sex = match.groups()[0]
         else:
-            self.logger.log("Invalid sex line in %s:%d"
-                    % (self._filepath, number), 'WARN')
-            raise EIMParsingError("Invalid sex line in %s:%d"
+            raise EIMParsingError("Invalid sex line: %s:%d"
                     % (self._filepath, number))
 
 def __test():

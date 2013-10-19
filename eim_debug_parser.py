@@ -1,4 +1,4 @@
-from eim_parser import EIMParser, EIMParserLogger, EIMParsingError
+from eim_parser import EIMParser, EIMParsingError
 import re, datetime, sys
 
 class EIMDebugParser(EIMParser):
@@ -60,14 +60,12 @@ class EIMDebugParser(EIMParser):
                     self.debug_data.append({
                         'start':starts[i],'end':ends[i],'length':lengths[i]})
             else:
-                self.logger.log('Malformed debug file: %s' % (self._filepath), 'WARN')
                 raise EIMParsingError('Malformed debug file: %s' % self._filepath)
 
             match = re.search('T\d_S(\d{4})_.*.txt', self._filepath)
             if match:
                 self._experiment_metadata['session_id'] = int(match.groups()[0])
             else:
-                self.logger.log("Could not find a valid session ID in %s" % self._filepath, 'WARN')
                 raise EIMParsingError("No valid session id found in filename %s" % self._filepath)
 
         finally:

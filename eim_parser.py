@@ -1,4 +1,4 @@
-import re, datetime, sys, logging, os
+import re, datetime, sys, logging, os, json
 
 experiment_locations = ['DUBLIN', 'NYC', 'BERGEN', 'SINGAPORE', 'MANILA']
 
@@ -114,13 +114,13 @@ class EIMParser():
         """
         Opens the file at filepath and stores descriptor.
 
-        >>> f = open('./.T4_S9999_test.txt', 'a')
+        >>> f = open('./.MANILA_T4_S9999_test.txt', 'a')
         >>> f.close()
-        >>> parser = EIMParser(filepath = './.T4_S9999_test.txt')
+        >>> parser = EIMParser(filepath = './.MANILA_T4_S9999_test.txt')
         >>> parser.open_file()
         True
 
-        >>> parser._file.name == os.path.abspath('./.T4_S9999_test.txt')
+        >>> parser._file.name == os.path.abspath('./.MANILA_T4_S9999_test.txt')
         True
 
         >>> parser._file.closed
@@ -140,9 +140,9 @@ class EIMParser():
         """
         Closes the file at filepath.
 
-        >>> f = open('./T4_S9898_test.txt', 'w')
+        >>> f = open('./.MANILA_T4_S9898_test.txt', 'w')
         >>> f.close()
-        >>> parser = EIMParser(filepath = './T4_S9898_test.txt')
+        >>> parser = EIMParser(filepath = './.MANILA_T4_S9898_test.txt')
         >>> parser.open_file()
         True
         >>> parser.close_file()
@@ -193,6 +193,34 @@ class EIMParser():
 
     def parse_line(self, line, number):
         pass
+
+    def to_dict(self):
+        return dict()
+
+    def to_json_file(self):
+        """
+        Saves dict representation as a JSON file.
+
+        >>> f = open('./.MANILA_T2_S9898_test.txt', 'w')
+        >>> f.close()
+        >>> p = EIMParser('./.MANILA_T2_S9898_test.txt')
+        >>> p.to_json_file()
+        >>> j = open('./.MANILA_T2_S9898_test.json', 'r')
+        >>> j.read()
+        '{}'
+        >>> j.close()
+        >>> os.unlink(f.name)
+        >>> os.unlink(j.name)
+        """
+        current_dir = os.path.dirname(self._filepath)
+        file_no_ext = os.path.splitext(os.path.basename(self._filepath))[0]
+        try:
+            f = open(os.path.join(current_dir, '%s.json' % file_no_ext), 'w')
+            json.dump(self.to_dict(), f)
+        except:
+            raise EIMParsingError('Could not write JSON file for %s', self._filepath)
+        finally:
+            f.close()
 
 def __test():
     import doctest

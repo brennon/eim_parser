@@ -37,7 +37,6 @@ def main():
     ignored_files = list()
 
     # Iterate over all files below root_dir
-    print('Iterating over files...')
     for root, dirs, files in os.walk(root_dir):
         for f in files:
             if re.search('.txt$', f):
@@ -53,14 +52,13 @@ def main():
     # Determine data file types from among:
     # reset, test, info, answers, debug, and song
     type_counts = {
-            'RESET':0,
-            'INFO':0,
-            'TEST':0,
-            'ANSWERS':0,
-            'DEBUG':0,
-            'SONG':0,
-            'UNKNOWN':0
-            }
+        'RESET':0,
+        'INFO':0,
+        'TEST':0,
+        'ANSWERS':0,
+        'DEBUG':0,
+        'SONG':0,
+        'UNKNOWN':0}
 
 
     # Create database connector
@@ -89,15 +87,7 @@ def main():
             try:
                 p = EIMInfoParser(f, logger)
                 p.parse()
-                info_dict = p.to_dict()
-
-                # Insert in database using EIMDBConnector
-                try:
-                    db.upsert_by_session_id(info_dict['session_id'], info_dict)
-                    logger.info("Inserting data from %s" % f)
-                except:
-                    logger.error("Error when inserting data from %s" % f)
-                    raise
+                p.to_json_file()
 
             except Exception as e:
                 logger.error("Error parsing %s: %s" % (f, e))
@@ -114,15 +104,8 @@ def main():
             try:
                 p = EIMTestParser(f, logger)
                 p.parse()
-                test_dict = p.to_dict()
+                p.to_json_file()
 
-                # Insert in database using EIMDBConnector
-                try:
-                    db.upsert_by_session_id(test_dict['session_id'], test_dict)
-                    logger.info("Inserting data from %s" % f)
-                except:
-                    logger.error("Error when inserting data from %s" % f)
-                    raise
             except:
                 logger.error("Error parsing %s" % f)
 
@@ -138,15 +121,8 @@ def main():
             try:
                 p = EIMSongParser(f, logger)
                 p.parse()
-                song_dict = p.to_dict()
+                p.to_json_file()
 
-                # Insert in database using EIMDBConnector
-                try:
-                    db.upsert_by_session_id(song_dict['session_id'], song_dict)
-                    logger.info("Inserting data from %s" % f)
-                except:
-                    logger.error("Error when inserting data from %s" % f)
-                    raise
             except:
                 logger.error("Error parsing %s" % f)
 
@@ -163,15 +139,8 @@ def main():
             try:
                 p = EIMAnswersParser(f, logger)
                 p.parse()
-                answers_dict = p.to_dict()
+                p.to_json_file()
 
-                # Insert in database using EIMDBConnector
-                try:
-                    db.upsert_by_session_id(answers_dict['session_id'], answers_dict)
-                    logger.info("Inserting data from %s" % f)
-                except:
-                    logger.error("Error when inserting data from %s" % f)
-                    raise
             except:
                 logger.error("Error parsing %s" % f)
 
@@ -188,15 +157,8 @@ def main():
             try:
                 p = EIMDebugParser(f, logger)
                 p.parse()
-                debug_dict = p.to_dict()
+                p.to_json_file()
 
-                # Insert in database using EIMDBConnector
-                try:
-                    db.upsert_by_session_id(debug_dict['session_id'], debug_dict)
-                    logger.info("Inserting data from %s" % f)
-                except:
-                    logger.error("Error when inserting data from %s" % f)
-                    raise
             except:
                 logger.error("Error parsing %s" % f)
 

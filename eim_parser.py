@@ -1,4 +1,4 @@
-import re, datetime, sys, logging
+import re, datetime, sys, logging, os
 
 experiment_locations = ['DUBLIN', 'NYC', 'BERGEN', 'SINGAPORE', 'MANILA']
 
@@ -70,7 +70,7 @@ class EIMParser():
         else:
             self.logger = logger
 
-        self._filepath = filepath
+        self._filepath = os.path.abspath(filepath)
         self._file = None
         self._experiment_metadata = {'location':None, 'terminal':None, 'session_id':None}
         self.gather_metadata()
@@ -110,29 +110,18 @@ class EIMParser():
 
         raise EIMParsingError('Could not determine terminal number for %s' % self._filepath)
 
-    def filepath(self):
-        """
-        Returns the filepath for this parser.
-
-        >>> import inspect
-        >>> this_file = './data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt'
-        >>> parser = EIMParser(filepath = this_file)
-        >>> parser.filepath() == this_file
-        True
-        """
-        return self._filepath
-
     def open_file(self):
         """
         Opens the file at filepath and stores descriptor.
 
-        >>> f = open('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/.T4_S9999_test.txt', 'a')
-        >>> parser = EIMParser(filepath = './data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/.T4_S9999_test.txt')
+        >>> f = open('./.T4_S9999_test.txt', 'a')
+        >>> f.close()
+        >>> parser = EIMParser(filepath = './.T4_S9999_test.txt')
         >>> parser.open_file()
         True
 
-        >>> parser._file.name
-        './data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/.T4_S9999_test.txt'
+        >>> parser._file.name == os.path.abspath('./.T4_S9999_test.txt')
+        True
 
         >>> parser._file.closed
         False
@@ -144,16 +133,16 @@ class EIMParser():
         try:
             self._file = open(self._filepath, 'r')
             return True
-        except FileNotFoundError:
+        except:
             raise EIMParsingError('Could not open %s' % self._filepath)
 
     def close_file(self):
         """
         Closes the file at filepath.
 
-        >>> f = open('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/.T4_S9898_test.txt', 'w')
+        >>> f = open('./T4_S9898_test.txt', 'w')
         >>> f.close()
-        >>> parser = EIMParser(filepath = './data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/.T4_S9898_test.txt')
+        >>> parser = EIMParser(filepath = './T4_S9898_test.txt')
         >>> parser.open_file()
         True
         >>> parser.close_file()

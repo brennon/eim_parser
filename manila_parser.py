@@ -8,10 +8,13 @@ from eim_debug_parser import EIMDebugParser
 from eim_db_connector import EIMDBConnector
 from pprint import pprint
 import logging
+import cProfile
 
 def main():
     usage = "usage: %prog [base_directory]"
     parser = OptionParser(usage=usage)
+    parser.add_option('-d', '--dir', dest='root_dir', default=None, help='root directory for parsing')
+    (options, args) = parser.parse_args()
 
     logger = logging.getLogger('manila_parser')
     logger.setLevel(logging.DEBUG)
@@ -25,12 +28,16 @@ def main():
     logger.addHandler(fh)
     logger.addHandler(ch)
 
-    root_dir = os.getcwd()
+    if options.root_dir:
+        root_dir = options.root_dir
+    else:
+        root_dir = os.getcwd()
 
     file_list = list()
     ignored_files = list()
 
     # Iterate over all files below root_dir
+    print('Iterating over files...')
     for root, dirs, files in os.walk(root_dir):
         for f in files:
             if re.search('.txt$', f):
@@ -203,4 +210,4 @@ def main():
     logger.info(type_counts)
 
 if __name__ == "__main__":
-    main()
+    cProfile.run('main()', 'manila_parser.prof')

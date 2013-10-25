@@ -1,53 +1,48 @@
 from eim_parser import EIMParser, EIMParsingError
 import re, datetime, sys, os
 
-class EIMDebugParser(EIMParser):
+class EIMResetParser(EIMParser):
     def __init__(self, filepath, logger=None):
         """
         Initializes EIMDebugParser.
         """
         super().__init__(filepath, logger)
-        self.debug_data = []
+        self.reset_slide = False
 
     def to_dict(self):
         """
         Assembles a dictionary of parsed data.
 
-        >>> p = EIMDebugParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_debug.txt')
+        >>> p = EIMResetParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T4_S0052_RESET.txt')
         >>> p.parse()
-        >>> debug_dict = p.to_dict()
-        >>> debug_dict['debug'][1] == {'start':'13:01:04','length':95628.719,'end':'13:02:40'}
+        >>> p.to_dict()['reset']
         True
 
-        >>> f = open('./.MANILA_T2_S9999_debug.txt', 'w')
-        >>> f.close()
-        >>> p = EIMDebugParser('./.MANILA_T2_S9999_debug.txt')
+        >>> p = EIMResetParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T4_S0054_RESET.txt')
         >>> p.parse()
-        >>> debug_dict = p.to_dict()
-        >>> debug_dict['debug'] == []
-        True
-        >>> os.unlink(f.name)
+        >>> p.to_dict()['reset']
+        'Slide 11 Black1.maxpat'
         """
         data = {
             'session_id':self._experiment_metadata['session_id'],
             'terminal':self._experiment_metadata['terminal'],
             'location':self._experiment_metadata['location'],
-            'debug':self.debug_data}
+            'reset':self.reset_slide}
         return data
 
     def parse(self):
         """
-        Parses all text from a debug file.
+        Parses all text from a reset file.
 
-        >>> p = EIMDebugParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_debug.txt')
+        >>> p = EIMResetParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T4_S0052_RESET.txt')
         >>> p.parse()
-        >>> p.debug_data[1] == {'start':'13:01:04','length':95628.719,'end':'13:02:40'}
+        >>> p.reset_slide == True
         True
-        >>> f = open('./.MANILA_T2_S9999_debug.txt', 'w')
-        >>> f.close()
-        >>> p = EIMDebugParser('./.MANILA_T2_S9999_debug.txt')
+
+        >>> p = EIMResetParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T4_S0054_RESET.txt')
         >>> p.parse()
-        >>> os.unlink(f.name)
+        >>> p.reset_slide == 'Slide 11 Black1.maxpat'
+        True
         """
         try:
             self.open_file()
@@ -55,34 +50,20 @@ class EIMDebugParser(EIMParser):
 
             if len(lines) > 0:
                 text = ''.join(lines)
-                regex = 'Song \d+\nStart (\d+:\d+:\d+)\nEnd (\d+:\d+:\d+)\nLength (\d+\.\d+)\nSong \d+\nStart (\d+:\d+:\d+)\nEnd (\d+:\d+:\d+)\nLength (\d+\.\d+)\nSong \d+\nStart (\d+:\d+:\d+)\nEnd (\d+:\d+:\d+)\nLength (\d+\.\d+)'
-                match = re.search(regex, text)
+                match = re.search("(Slide.*)", text, re.M)
+
                 if match:
-                    starts = []
-                    ends = []
-                    lengths = []
-
-                    starts.append(match.groups()[0])
-                    ends.append(match.groups()[1])
-                    lengths.append(float(match.groups()[2]))
-                    starts.append(match.groups()[3])
-                    ends.append(match.groups()[4])
-                    lengths.append(float(match.groups()[5]))
-                    starts.append(match.groups()[6])
-                    ends.append(match.groups()[7])
-                    lengths.append(float(match.groups()[8]))
-
-                    for i in range(3):
-                        self.debug_data.append({
-                            'start':starts[i],'end':ends[i],'length':lengths[i]})
+                    self.reset_slide = match.groups()[0].strip()
                 else:
-                    raise EIMParsingError('Malformed debug file: %s' % self._filepath)
+                    raise EIMParsingError('Malformed reset file: %s' % self._filepath)
 
                 match = re.search('T\d_S(\d{4})_.*.txt', self._filepath)
                 if match:
                     self._experiment_metadata['session_id'] = int(match.groups()[0])
                 else:
                     raise EIMParsingError("No valid session id found in filename %s" % self._filepath)
+            else:
+                self.reset_slide = True
 
         finally:
             if self._file and not self._file.closed:

@@ -76,6 +76,18 @@ def main():
         # Is this a reset file?
         if re.search('T\d_S\d{4,}_RESET.txt', f):
             # Parse reset file
+            logger.info("Parsing %s" % f)
+
+            # Build and use an EIMResetParser for this file
+            try:
+                p = EIMResetParser(f, logger)
+                p.parse()
+                p.to_json_file()
+
+            except Exception as e:
+                logger.error("Error parsing %s: %s" % (f, e))
+
+            # Update counts
             type_counts['RESET'] += 1
 
         # Is this an info file?

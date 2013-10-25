@@ -1,5 +1,5 @@
 from eim_parser import EIMParser, EIMParsingError
-import re, datetime, sys
+import re, datetime, sys, os
 
 class EIMDebugParser(EIMParser):
     def __init__(self, filepath, logger=None):
@@ -34,39 +34,46 @@ class EIMDebugParser(EIMParser):
         >>> p.parse()
         >>> p.debug_data[1] == {'start':'13:01:04','length':95628.719,'end':'13:02:40'}
         True
+        >>> f = open('./.T2_MANILA_S9999_debug.txt', 'w')
+        >>> f.close()
+        >>> p = EIMDebugParser('./.T2_MANILA_S9999_debug.txt')
+        >>> p.parse()
+        >>> os.unlink(f.name)
         """
         try:
             self.open_file()
             lines = list(self._file)
-            text = ''.join(lines)
-            regex = 'Song \d+\nStart (\d+:\d+:\d+)\nEnd (\d+:\d+:\d+)\nLength (\d+\.\d+)\nSong \d+\nStart (\d+:\d+:\d+)\nEnd (\d+:\d+:\d+)\nLength (\d+\.\d+)\nSong \d+\nStart (\d+:\d+:\d+)\nEnd (\d+:\d+:\d+)\nLength (\d+\.\d+)'
-            match = re.search(regex, text)
-            if match:
-                starts = []
-                ends = []
-                lengths = []
-
-                starts.append(match.groups()[0])
-                ends.append(match.groups()[1])
-                lengths.append(float(match.groups()[2]))
-                starts.append(match.groups()[3])
-                ends.append(match.groups()[4])
-                lengths.append(float(match.groups()[5]))
-                starts.append(match.groups()[6])
-                ends.append(match.groups()[7])
-                lengths.append(float(match.groups()[8]))
-
-                for i in range(3):
-                    self.debug_data.append({
-                        'start':starts[i],'end':ends[i],'length':lengths[i]})
-            else:
-                raise EIMParsingError('Malformed debug file: %s' % self._filepath)
-
-            match = re.search('T\d_S(\d{4})_.*.txt', self._filepath)
-            if match:
-                self._experiment_metadata['session_id'] = int(match.groups()[0])
-            else:
-                raise EIMParsingError("No valid session id found in filename %s" % self._filepath)
+            
+            if len(lines) > 0:
+                text = ''.join(lines)
+                regex = 'Song \d+\nStart (\d+:\d+:\d+)\nEnd (\d+:\d+:\d+)\nLength (\d+\.\d+)\nSong \d+\nStart (\d+:\d+:\d+)\nEnd (\d+:\d+:\d+)\nLength (\d+\.\d+)\nSong \d+\nStart (\d+:\d+:\d+)\nEnd (\d+:\d+:\d+)\nLength (\d+\.\d+)'
+                match = re.search(regex, text)
+                if match:
+                    starts = []
+                    ends = []
+                    lengths = []
+    
+                    starts.append(match.groups()[0])
+                    ends.append(match.groups()[1])
+                    lengths.append(float(match.groups()[2]))
+                    starts.append(match.groups()[3])
+                    ends.append(match.groups()[4])
+                    lengths.append(float(match.groups()[5]))
+                    starts.append(match.groups()[6])
+                    ends.append(match.groups()[7])
+                    lengths.append(float(match.groups()[8]))
+    
+                    for i in range(3):
+                        self.debug_data.append({
+                            'start':starts[i],'end':ends[i],'length':lengths[i]})
+                else:
+                    raise EIMParsingError('Malformed debug file: %s' % self._filepath)
+    
+                match = re.search('T\d_S(\d{4})_.*.txt', self._filepath)
+                if match:
+                    self._experiment_metadata['session_id'] = int(match.groups()[0])
+                else:
+                    raise EIMParsingError("No valid session id found in filename %s" % self._filepath)
 
         finally:
             if self._file and not self._file.closed:

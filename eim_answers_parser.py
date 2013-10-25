@@ -516,7 +516,7 @@ class EIMAnswersParser(EIMParser):
             ...
         eim_parser.EIMParsingError: Invalid nationality line: ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_answers.txt:1
         """
-        match = re.search('symbol ([a-zA-Z ]+) ;', line)
+        match = re.search('symbol ([a-zA-Z_ ]+) ;', line)
         if match:
             self.nationality = match.groups()[0]
         else:

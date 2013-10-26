@@ -57,17 +57,18 @@ class EIMResetParser(EIMParser):
                 else:
                     raise EIMParsingError('Malformed reset file: %s' % self._filepath)
 
-                match = re.search('T\d_S(\d{4})_.*.txt', self._filepath)
-                if match:
-                    self._experiment_metadata['session_id'] = int(match.groups()[0])
-                else:
-                    raise EIMParsingError("No valid session id found in filename %s" % self._filepath)
             else:
                 self.reset_slide = True
 
         finally:
             if self._file and not self._file.closed:
                 self.close_file()
+
+        match = re.search('T\d_S(\d+)_.*.txt', self._filepath)
+        if match:
+            self._experiment_metadata['session_id'] = int(match.groups()[0])
+        else:
+            raise EIMParsingError("No valid session id found in filename %s" % self._filepath)
 
 def __test():
     import doctest

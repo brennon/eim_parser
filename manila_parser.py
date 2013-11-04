@@ -6,6 +6,7 @@ from eim_test_parser import EIMTestParser, EIMSongParser
 from eim_answers_parser import EIMAnswersParser
 from eim_debug_parser import EIMDebugParser
 from eim_db_connector import EIMDBConnector
+from eim_reset_parser import EIMResetParser
 from pprint import pprint
 import logging
 import cProfile
@@ -91,7 +92,7 @@ def main():
             type_counts['RESET'] += 1
 
         # Is this an info file?
-        if re.search('T\d_S\d{4,}_1nfo.txt', f):
+        elif re.search('T\d_S\d{4,}_1nfo.txt', f):
             # Parse info file
             logger.info("Parsing %s" % f)
 

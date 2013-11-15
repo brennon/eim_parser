@@ -66,11 +66,11 @@ def main():
 
         if success:
 
-            base_file = open(base_filename, 'r')
             try:
+                base_file = open(base_filename, 'r')
                 base_dict = json.load(base_file)
             except:
-                pass
+                base_dict = dict()
             finally:
                 if base_file and not base_file.closed:
                     base_file.close()

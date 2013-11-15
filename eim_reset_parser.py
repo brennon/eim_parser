@@ -23,6 +23,9 @@ class EIMResetParser(EIMParser):
         >>> p.to_dict()['reset']
         'Slide 11 Black1.maxpat'
         """
+        if not self._experiment_metadata['session_id']:
+            raise EIMParsingError('No session ID for reset file: %s' % self._filepath)
+
         data = {
             'session_id':self._experiment_metadata['session_id'],
             'terminal':self._experiment_metadata['terminal'],
@@ -59,6 +62,9 @@ class EIMResetParser(EIMParser):
 
             else:
                 self.reset_slide = True
+
+        except:
+            self.reset_slide = True
 
         finally:
             if self._file and not self._file.closed:

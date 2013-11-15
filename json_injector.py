@@ -50,7 +50,7 @@ def main():
 
     # Iterate over collected files
     for f in file_list:
-        call(['mongoimport', '-h', 'muse.cc.vt.edu', '-d', 'eim', '-c', 'sessions', '-f', f])
+        call(['mongoimport', '-h', 'muse.cc.vt.edu', '-d', 'eim', '-c', 'sessions', '--file', f])
 
 if __name__ == "__main__":
     main()

@@ -90,6 +90,7 @@ def main():
 
             # Update counts
             type_counts['RESET'] += 1
+        """
 
         # Is this an info file?
         elif re.search('T\d_S\d{4,}_1nfo.txt', f):
@@ -181,6 +182,7 @@ def main():
         else:
             type_counts['UNKNOWN'] += 1
             print("WARNING - Unrecognized file:",f)
+        """
 
     logger.info(type_counts)
 

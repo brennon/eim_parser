@@ -1,3 +1,7 @@
 __pycache__
 data/
 *.swp
+ez_setup.py
+get-pip.py
+manila_parser.log
+manila_parser.prof

@@ -1,0 +1,9 @@
+type , symbol audio ;
+SONGS , symbol "T008.wav-H014.wav-R017.wav" ;
+START , symbol "14:13:12" ;
+DATE , symbol "07-23-2012" ;
+TEST , symbol "14:14:31" ;
+"song1" , symbol "14:15:48" ;
+"song2" , symbol "14:18:33" ;
+"song3" , symbol "14:20:27" ;
+END , symbol "14:22:41" ;

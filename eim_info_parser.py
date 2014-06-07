@@ -10,52 +10,126 @@ class EIMInfoParser(EIMParser):
         super().__init__(filepath, logger)
         self._date = None
         self._timestamps = {}
-        self._song_timestamps = {}
+        self._song_timestamps = []
         self._songs = {}
+
+    def ensure_date_set(self, message):
+        """
+        Throws an exception if _date is not set.
+
+        >>> f = open('./test_data/T1_MANILA_S9999_1nfo.txt', 'w')
+        >>> f.close()
+
+        >>> p = EIMInfoParser('./test_data/T1_MANILA_S9999_1nfo.txt')
+        >>> p._date = None
+        >>> p.ensure_date_set(None)
+        Traceback (most recent call last):
+            ...
+        eim_parser.EIMParsingError:
+
+        >>> import os
+        >>> os.unlink('./test_data/T1_MANILA_S9999_1nfo.txt')
+        """
+        if not self._date:
+            raise EIMParsingError('Date not parsed and set in %s' % self._filepath)
 
     def to_dict(self):
         """
         Assembles a dictionary of parsed data.
 
-        >>> p = EIMInfoParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt')
+type , symbol audio ;
+SONGS , symbol "H015.wav-S014.wav-H001.wav" ;
+START , symbol "14:25:58" ;
+DATE , symbol "07-20-2012" ;
+TEST , symbol "14:26:37" ;
+"song1" , symbol "14:27:08" ;
+"song2" , symbol "14:29:54" ;
+"song3" , symbol "14:32:19" ;
+END , symbol "14:34:36" ;
+
+
+        >>> p = EIMInfoParser('./test_data/SINGAPORE/SERVER/2012-07-20/SingaporeTerminal/T3/21-07-2012/experiment/T3_S0577_1nfo.txt')
         >>> p.parse()
-        >>> p.to_dict() == {'songs':{'order': ['R014', 'S001', 'S012']},'timestamps': {'START':'2012-12-20T12:57:39','TEST':'2012-12-20T12:58:04','END':'2012-12-20T13:05:29'},'session_id':9999,'location':'Manila','terminal':2}
-        True
+
+        >>> p.to_dict()['media']
+        ['H015.wav', 'S014.wav', 'H001.wav']
+
+        >>> p.to_dict()['date']
+        '2012-07-20'
+
+        >>> p.to_dict()['timestamps']['start']
+        '2012-07-20T14:25:58'
+
+        >>> p.to_dict()['timestamps']['test']
+        '2012-07-20T14:26:37'
+
+        >>> p.to_dict()['timestamps']['end']
+        '2012-07-20T14:34:36'
+
+        >>> p.to_dict()['timestamps']['media'][0]
+        '2012-07-20T14:27:08'
+
+        >>> p.to_dict()['timestamps']['media'][1]
+        '2012-07-20T14:29:54'
+
+        >>> p.to_dict()['timestamps']['media'][2]
+        '2012-07-20T14:32:19'
+
+        >>> p.to_dict()['metadata']['session_number']
+        577
+
+        >>> p.to_dict()['metadata']['terminal']
+        3
+
+        >>> p.to_dict()['metadata']['location']
+        'singapore'
         """
-        return {'songs':self._songs,'timestamps':self._timestamps,'session_id':self._experiment_metadata['session_id'],'location':self._experiment_metadata['location'],'terminal':self._experiment_metadata['terminal']}
+        all_timestamps = self._timestamps
+        all_timestamps['media'] = self._song_timestamps
+
+        return_dict = dict()
+        return_dict['metadata'] = self._experiment_metadata
+        return_dict['media'] = self._songs
+        return_dict['timestamps'] = all_timestamps
+        return_dict['date'] = self._date.isoformat()
+        return return_dict
 
     def parse_line(self, line, number):
         """
         Parses a line of text from an info file.
 
-        >>> f = open('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt', 'r')
+        >>> f = open('./test_data/T1_MANILA_S9999_1nfo.txt', 'w')
         >>> f.close()
-        >>> p = EIMInfoParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt')
+
+        >>> p = EIMInfoParser('./test_data/T1_MANILA_S9999_1nfo.txt')
         >>> p.parse_line('SONGS , symbol "R014.wav-S001.wav-S012.wav" ;', 4)
         >>> p._songs
-        {'order': ['R014', 'S001', 'S012']}
+        ['R014.wav', 'S001.wav', 'S012.wav']
 
         >>> p.parse_line('DATE , symbol "12-20-2012" ;', 5)
         >>> p._date
         datetime.date(2012, 12, 20)
 
         >>> p.parse_line('START , symbol "12:57:39" ;', 6)
-        >>> p._timestamps['START']
+        >>> p._timestamps['start']
         '2012-12-20T12:57:39'
 
         >>> p.parse_line('TEST , symbol "12:58:04" ;', 7)
-        >>> p._timestamps['TEST']
+        >>> p._timestamps['test']
         '2012-12-20T12:58:04'
 
         >>> p.parse_line('END , symbol "13:05:29" ;', 8)
-        >>> p._timestamps['END']
+        >>> p._timestamps['end']
         '2012-12-20T13:05:29'
 
         >>> p.parse_line('"song2" , symbol "13:01:04" ;', 9)
         >>> p.parse_line('"song1" , symbol "12:58:37" ;', 10)
         >>> p.parse_line('"song3" , symbol "13:03:19" ;', 11)
         >>> p._song_timestamps
-        {0: '2012-12-20T12:58:37', 1: '2012-12-20T13:01:04', 2: '2012-12-20T13:03:19'}
+        ['2012-12-20T12:58:37', '2012-12-20T13:01:04', '2012-12-20T13:03:19']
+
+        >>> import os
+        >>> os.unlink('./test_data/T1_MANILA_S9999_1nfo.txt')
         """
         timestamp_tags = {'START', 'TEST', 'END'}
         match = re.search('"?(\w+)"? ,.*', line)
@@ -83,61 +157,68 @@ class EIMInfoParser(EIMParser):
         Parses the 'SONGS' line from an info file. Returns a dictionary
         of the songs in order in which they were presented in the experiment.
 
-        >>> f = open('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt', 'r')
+        >>> f = open('./test_data/T1_MANILA_S9999_1nfo.txt', 'w')
         >>> f.close()
-        >>> p = EIMInfoParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt')
+
+        >>> p = EIMInfoParser('./test_data/T1_MANILA_S9999_1nfo.txt')
         >>> p.parse_songs_line('SONGS , symbol "R014.wav-S001.wav-S012.wav" ;')
         >>> p._songs
-        {'order': ['R014', 'S001', 'S012']}
+        ['R014.wav', 'S001.wav', 'S012.wav']
+
+        >>> p._songs = None
+        >>> p.parse_songs_line('SONGS , symbol "R014.wav-S012.wav" ;')
+        >>> p._songs
+        ['R014.wav', 'S012.wav']
 
         >>> p.parse_songs_line('no songs here')
         Traceback (most recent call last):
             ...
-        eim_parser.EIMParsingError: No songs found in song line: ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt
+        eim_parser.EIMParsingError:
+
+        >>> import os
+        >>> os.unlink('./test_data/T1_MANILA_S9999_1nfo.txt')
         """
-        regex = re.compile('([HRST]\d{3})')
+        regex = re.compile('([HRST]\d{3}.wav)')
         songs = regex.findall(line)
         if len(songs) == 0:
             raise EIMParsingError("No songs found in song line: %s"
                     % self._filepath)
-        self._songs = {"order":songs}
-
-    def ensure_date_set(self, message):
-        """
-        Throws an exception if _date is not set.
-
-        >>> p = EIMInfoParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt')
-        >>> p._date = None
-        >>> p.ensure_date_set(None)
-        Traceback (most recent call last):
-            ...
-        eim_parser.EIMParsingError: Date not parsed and set in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt
-        """
-        if not self._date:
-            raise EIMParsingError('Date not parsed and set in %s' % self._filepath)
+        self._songs = songs
 
     def parse_timestamp_line(self, line):
         """
         Parses a timestamp line from an info file. Returns a dictionary
         corresponding to the timestamp.
 
-        >>> f = open('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt', 'r')
+        >>> f = open('./test_data/T1_MANILA_S9999_1nfo.txt', 'w')
         >>> f.close()
-        >>> p = EIMInfoParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt')
+
+        >>> p = EIMInfoParser('./test_data/T1_MANILA_S9999_1nfo.txt')
         >>> p._date = datetime.date(2013, 8, 14)
         >>> p.parse_timestamp_line('START , symbol "12:57:39" ;')
-        >>> p._timestamps['START']
+        >>> p._timestamps['start']
         '2013-08-14T12:57:39'
+
+        >>> p.parse_timestamp_line('TEST , symbol "12:57:40" ;')
+        >>> p._timestamps['test']
+        '2013-08-14T12:57:40'
+
+        >>> p.parse_timestamp_line('END , symbol "12:57:41" ;')
+        >>> p._timestamps['end']
+        '2013-08-14T12:57:41'
 
         >>> p.parse_timestamp_line('STRT , symbol "12:57:39" ;')
         Traceback (most recent call last):
             ...
-        eim_parser.EIMParsingError: No valid timestamp marker found in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt
+        eim_parser.EIMParsingError:
 
         >>> p.parse_timestamp_line('START , symbol "12:5:39" ;')
         Traceback (most recent call last):
             ...
-        eim_parser.EIMParsingError: No valid timestamp found for START in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt
+        eim_parser.EIMParsingError:
+
+        >>> import os
+        >>> os.unlink('./test_data/T1_MANILA_S9999_1nfo.txt')
         """
         self.ensure_date_set("Trying to parse timestamps before date is set in %s"
                     % self._filepath)
@@ -166,31 +247,35 @@ class EIMInfoParser(EIMParser):
                 int(m),
                 int(s)
                 )
-        self._timestamps[tag] = timestamp.isoformat()
+        self._timestamps[tag.lower()] = timestamp.isoformat()
 
     def parse_song_timestamp_line(self, line):
         """
         Parses a *song* timestamp line from an info file and adds this timestamp to _song_timestamps.
 
-        >>> f = open('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt', 'r')
+        >>> f = open('./test_data/T1_MANILA_S9999_1nfo.txt', 'w')
         >>> f.close()
-        >>> p = EIMInfoParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt')
+
+        >>> p = EIMInfoParser('./test_data/T1_MANILA_S9999_1nfo.txt')
         >>> p._date = datetime.date(2013, 8, 14)
         >>> p.parse_song_timestamp_line('"song2" , symbol "13:01:04" ;')
         >>> p.parse_song_timestamp_line('"song1" , symbol "12:58:37" ;')
         >>> p.parse_song_timestamp_line('"song3" , symbol "13:03:19" ;')
         >>> p._song_timestamps
-        {0: '2013-08-14T12:58:37', 1: '2013-08-14T13:01:04', 2: '2013-08-14T13:03:19'}
+        ['2013-08-14T12:58:37', '2013-08-14T13:01:04', '2013-08-14T13:03:19']
 
         >>> p.parse_song_timestamp_line('"sng2" , symbol "12:57:39" ;')
         Traceback (most recent call last):
             ...
-        eim_parser.EIMParsingError: No valid song tag found in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt
+        eim_parser.EIMParsingError:
 
         >>> p.parse_song_timestamp_line('"song2" , symbol "12:5:39" ;')
         Traceback (most recent call last):
             ...
-        eim_parser.EIMParsingError: No valid timestamp found for song 2 in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt
+        eim_parser.EIMParsingError:
+
+        >>> import os
+        >>> os.unlink('./test_data/T1_MANILA_S9999_1nfo.txt')
         """
 
         self.ensure_date_set("Trying to parse song timestamps before date is set in %s"
@@ -220,16 +305,16 @@ class EIMInfoParser(EIMParser):
                 int(m),
                 int(s)
                 )
-        self._song_timestamps[int(song)-1] = timestamp.isoformat()
-
+        self._song_timestamps.append(timestamp.isoformat())
+        self._song_timestamps.sort()
 
     def parse_date_line(self, line):
         """
         Parses the date line from an info file. Sets self._date accordingly.
 
-        >>> f = open('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt', 'r')
+        >>> f = open('./test_data/T1_MANILA_S9999_1nfo.txt', 'w')
         >>> f.close()
-        >>> p = EIMInfoParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt')
+        >>> p = EIMInfoParser('./test_data/T1_MANILA_S9999_1nfo.txt')
         >>> p.parse_date_line('DATE , symbol "12-20-2012" ;')
         >>> p._date
         datetime.date(2012, 12, 20)
@@ -237,7 +322,9 @@ class EIMInfoParser(EIMParser):
         >>> p.parse_date_line('no date here')
         Traceback (most recent call last):
             ...
-        eim_parser.EIMParsingError: No date found in date line in ./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt
+        eim_parser.EIMParsingError:
+        >>> import os
+        >>> os.unlink('./test_data/T1_MANILA_S9999_1nfo.txt')
         """
         date_components = re.search('(\d{2})-(\d{2})-(\d{4})', line)
         if date_components:
@@ -249,7 +336,7 @@ class EIMInfoParser(EIMParser):
 
 def __test():
     import doctest
-    doctest.testmod()
+    doctest.testmod(optionflags=doctest.IGNORE_EXCEPTION_DETAIL)
 
 if __name__ == "__main__":
     __test()

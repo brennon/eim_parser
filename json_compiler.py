@@ -53,14 +53,18 @@ def main():
         # Get existing JSON dictionary
         prefix = None
         base_file = None
+        signals_file = None
         base_filename = None
+        signals_filename = None
         base_dict = dict()
+        signals_dict = dict()
         success = True
 
         match = re.search('(.*T\d_S\d+)', f)
         if match:
             prefix = match.groups()[0]
             base_filename = '%s.json' % prefix
+            signals_filename = '%s_signals.json' % prefix
         else:
             success = False
 

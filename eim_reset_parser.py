@@ -13,36 +13,45 @@ class EIMResetParser(EIMParser):
         """
         Assembles a dictionary of parsed data.
 
-        >>> p = EIMResetParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T4_S0052_RESET.txt')
+        >>> p = EIMResetParser('./eim_parser/test_data/SINGAPORE/SERVER/2012-07-20/SingaporeTerminal/T3/21-07-2012/experiment/T3_S0582_RESET.txt')
         >>> p.parse()
         >>> p.to_dict()['reset']
         True
+        >>> p.to_dict()['metadata']['location']
+        'singapore'
+        >>> p.to_dict()['metadata']['session_number']
+        582
+        >>> p.to_dict()['metadata']['terminal']
+        3
 
-        >>> p = EIMResetParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T4_S0054_RESET.txt')
+        >>> p = EIMResetParser('./test_data/SINGAPORE/SERVER/2012-07-20/SingaporeTerminal/T3/21-07-2012/experiment/T3_S0576_RESET.txt')
         >>> p.parse()
         >>> p.to_dict()['reset']
         'Slide 11 Black1.maxpat'
+        >>> p.to_dict()['metadata']['location']
+        'singapore'
+        >>> p.to_dict()['metadata']['session_number']
+        576
+        >>> p.to_dict()['metadata']['terminal']
+        3
         """
-        if not self._experiment_metadata['session_id']:
+        if not self._experiment_metadata['session_number']:
             raise EIMParsingError('No session ID for reset file: %s' % self._filepath)
 
-        data = {
-            'session_id':self._experiment_metadata['session_id'],
-            'terminal':self._experiment_metadata['terminal'],
-            'location':self._experiment_metadata['location'],
-            'reset':self.reset_slide}
-        return data
+        base = super().to_dict()
+        base['reset'] = self.reset_slide
+        return base
 
     def parse(self):
         """
         Parses all text from a reset file.
 
-        >>> p = EIMResetParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T4_S0052_RESET.txt')
+        >>> p = EIMResetParser('./eim_parser/test_data/SINGAPORE/SERVER/2012-07-20/SingaporeTerminal/T3/21-07-2012/experiment/T3_S0582_RESET.txt')
         >>> p.parse()
         >>> p.reset_slide == True
         True
 
-        >>> p = EIMResetParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T4_S0054_RESET.txt')
+        >>> p = EIMResetParser('./test_data/SINGAPORE/SERVER/2012-07-20/SingaporeTerminal/T3/21-07-2012/experiment/T3_S0576_RESET.txt')
         >>> p.parse()
         >>> p.reset_slide == 'Slide 11 Black1.maxpat'
         True
@@ -72,7 +81,7 @@ class EIMResetParser(EIMParser):
 
         match = re.search('T\d_S(\d+)_.*.txt', self._filepath)
         if match:
-            self._experiment_metadata['session_id'] = int(match.groups()[0])
+            self._experiment_metadata['session_number'] = int(match.groups()[0])
         else:
             raise EIMParsingError("No valid session id found in filename %s" % self._filepath)
 

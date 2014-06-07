@@ -4,8 +4,8 @@ experiment_locations = ['DUBLIN', 'NYC', 'BERGEN', 'SINGAPORE', 'MANILA']
 
 def timestamp_to_millis(timestamp_string):
     """
-    Converts a timestamp string of the format '02:14.667' to an integer representing
-    the total number of milliseconds from 00:00.000
+    Converts a timestamp string of the format '02:14.667' to an integer
+    representing the total number of milliseconds from 00:00.000
 
     >>> timestamp_to_millis('02:14.667')
     134667
@@ -209,7 +209,7 @@ class EIMParser():
         >>> json_dict['metadata']['location']
         'manila'
         >>> json_dict['metadata']['session_number']
-        
+
         >>> json_dict['metadata']['terminal']
         2
         >>> j.close()

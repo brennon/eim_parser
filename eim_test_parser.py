@@ -19,45 +19,68 @@ class EIMTestParser(EIMParser):
         """
         Assembles a dictionary of parsed data.
 
-        >>> p = EIMTestParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_TEST.txt')
+        >>> p = EIMTestParser('./test_data/SINGAPORE/SERVER/2012-07-20/SingaporeTerminal/T3/21-07-2012/experiment/T3_S0576_TEST.txt')
         >>> p.parse()
-        >>> len(p.to_dict()['signals']['test']['timestamps'])
-        1497
-        >>> len(p.to_dict()['signals']['test']['eda_raw'])
-        1497
-        >>> len(p.to_dict()['signals']['test']['eda_filtered'])
-        1497
-        >>> len(p.to_dict()['signals']['test']['eda_status'])
-        1497
-        >>> len(p.to_dict()['signals']['test']['pox_raw'])
-        1497
-        >>> len(p.to_dict()['signals']['test']['hr'])
-        1497
-        >>> len(p.to_dict()['signals']['test']['hr_status'])
-        1497
+        >>> len(p.to_dict()['signals']['timestamps'])
+        1499
+        >>> len(p.to_dict()['signals']['eda_raw'])
+        1499
+        >>> len(p.to_dict()['signals']['eda_filtered'])
+        1499
+        >>> len(p.to_dict()['signals']['eda_status'])
+        1499
+        >>> len(p.to_dict()['signals']['pox_raw'])
+        1499
+        >>> len(p.to_dict()['signals']['hr'])
+        1499
+        >>> len(p.to_dict()['signals']['hr_status'])
+        1499
+        >>> p.to_dict()['label']
+        'test'
+        >>> p.to_dict()['signals']['timestamps'][17]
+        0
+        >>> p.to_dict()['signals']['eda_raw'][17]
+        279.0
+        >>> p.to_dict()['signals']['eda_filtered'][17]
+        280.15
+        >>> p.to_dict()['signals']['eda_status'][17]
+        1
+        >>> p.to_dict()['signals']['pox_raw'][17]
+        974.0
+        >>> p.to_dict()['signals']['hr'][17]
+        71.429
+        >>> p.to_dict()['signals']['hr_status'][17]
+        1
+        >>> p.to_dict()['metadata']['location']
+        'singapore'
+        >>> p.to_dict()['metadata']['terminal']
+        3
+        >>> p.to_dict()['metadata']['session_number']
+        576
         """
         data = {
-            'session_id':self._experiment_metadata['session_id'],
-            'terminal':self._experiment_metadata['terminal'],
-            'location':self._experiment_metadata['location'],
+            'metadata':self._experiment_metadata,
             'signals': {
-                'test': {
-                    'timestamps':self._timestamps,
-                    'eda_raw':self._eda_raw,
-                    'eda_filtered':self._eda_filtered,
-                    'eda_status':self._eda_status,
-                    'pox_raw':self._pox_raw,
-                    'hr':self._hr,
-                    'hr_status':self._hr_status}}}
+                'timestamps':self._timestamps,
+                'eda_raw':self._eda_raw,
+                'eda_filtered':self._eda_filtered,
+                'eda_status':self._eda_status,
+                'pox_raw':self._pox_raw,
+                'hr':self._hr,
+                'hr_status':self._hr_status
+            },
+            'label':'test'
+        }
         return data
 
     def parse_line(self, line, number):
         """
         Parses a line of text from an test file.
 
-        >>> f = open('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_TEST.txt', 'r')
+        >>> f = open('./test_data/T1_MANILA_S9999_TEST.txt', 'w')
         >>> f.close()
-        >>> p = EIMTestParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_TEST.txt')
+
+        >>> p = EIMTestParser('./test_data/T1_MANILA_S9999_TEST.txt')
         >>> p.parse_line('00:00.000 143 145.000 1 0 72.289 1', 1)
         >>> p.parse_line('00:00.001 144 146.000 0 1 73.289 0', 2)
         >>> p._timestamps[0]
@@ -79,7 +102,10 @@ class EIMTestParser(EIMParser):
         >>> p.parse_line('00:00.000 143 145.000 1 0 72.289', 3)
         Traceback (most recent call last):
             ...
-        eim_parser.EIMParsingError: Malformed line in './data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_TEST.txt:3': 00:00.000 143 145.000 1 0 72.289
+        eim_parser.EIMParsingError:
+
+        >>> import os
+        >>> os.unlink('./test_data/T1_MANILA_S9999_TEST.txt')
         """
         match = re.search('(\\d+:\\d+.\\d+) (\\d+) (\\d+.\\d+) (\\d+) (\\d+) (\\d+.\\d+) (\\d+)', line)
         if match and len(match.groups()) == 7:
@@ -104,46 +130,67 @@ class EIMSongParser(EIMTestParser):
         """
         Assembles a dictionary of parsed data.
 
-        >>> p = EIMSongParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_R014.txt')
+        >>> p = EIMSongParser('./test_data/SINGAPORE/SERVER/2012-07-20/SingaporeTerminal/T3/21-07-2012/experiment/T3_S0574_R017.txt')
         >>> p.parse()
-        >>> len(p.to_dict()['signals']['songs']['R014']['timestamps'])
-        22722
-        >>> len(p.to_dict()['signals']['songs']['R014']['eda_raw'])
-        22722
-        >>> len(p.to_dict()['signals']['songs']['R014']['eda_filtered'])
-        22722
-        >>> len(p.to_dict()['signals']['songs']['R014']['eda_status'])
-        22722
-        >>> len(p.to_dict()['signals']['songs']['R014']['pox_raw'])
-        22722
-        >>> len(p.to_dict()['signals']['songs']['R014']['hr'])
-        22722
-        >>> len(p.to_dict()['signals']['songs']['R014']['hr_status'])
-        22722
+        >>> len(p.to_dict()['signals']['timestamps'])
+        19867
+        >>> len(p.to_dict()['signals']['eda_raw'])
+        19867
+        >>> len(p.to_dict()['signals']['eda_filtered'])
+        19867
+        >>> len(p.to_dict()['signals']['eda_status'])
+        19867
+        >>> len(p.to_dict()['signals']['pox_raw'])
+        19867
+        >>> len(p.to_dict()['signals']['hr'])
+        19867
+        >>> len(p.to_dict()['signals']['hr_status'])
+        19867
+        >>> p.to_dict()['signals']['timestamps'][19866]
+        79573
+        >>> p.to_dict()['signals']['eda_raw'][19866]
+        338.0
+        >>> p.to_dict()['signals']['eda_filtered'][19866]
+        340.85
+        >>> p.to_dict()['signals']['eda_status'][19866]
+        1
+        >>> p.to_dict()['signals']['pox_raw'][19866]
+        0.0
+        >>> p.to_dict()['signals']['hr'][19866]
+        75.949
+        >>> p.to_dict()['signals']['hr_status'][19866]
+        1
+        >>> p.to_dict()['metadata']['location']
+        'singapore'
+        >>> p.to_dict()['metadata']['terminal']
+        3
+        >>> p.to_dict()['metadata']['session_number']
+        574
+        >>> p.to_dict()['label']
+        'R017'
+
         """
         match = re.search('/T\d+_.*_(.*).txt', self._filepath)
         if match:
-            data = {
-                'session_id':self._experiment_metadata['session_id'],
-                'terminal':self._experiment_metadata['terminal'],
-                'location':self._experiment_metadata['location'],
+            return {
+                'metadata':self._experiment_metadata,
+                'label':match.groups()[0],
                 'signals': {
-                    'songs': {}}}
-            data['signals']['songs'][match.groups()[0]] = {
-                'timestamps':self._timestamps,
-                'eda_raw':self._eda_raw,
-                'eda_filtered':self._eda_filtered,
-                'eda_status':self._eda_status,
-                'pox_raw':self._pox_raw,
-                'hr':self._hr,
-                'hr_status':self._hr_status}
-            return data
+                    'timestamps':self._timestamps,
+                    'eda_raw':self._eda_raw,
+                    'eda_filtered':self._eda_filtered,
+                    'eda_status':self._eda_status,
+                    'pox_raw':self._pox_raw,
+                    'hr':self._hr,
+                    'hr_status':self._hr_status
+                }
+            }
         else:
             raise EIMParsingError("Could not find a valid song label in %s" % self._filepath)
 
 def __test():
     import doctest
-    doctest.testmod()
+    doctest.testmod(optionflags=doctest.IGNORE_EXCEPTION_DETAIL)
 
 if __name__ == "__main__":
     __test()

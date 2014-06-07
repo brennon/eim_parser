@@ -18,45 +18,13 @@ def timestamp_to_millis(timestamp_string):
 class EIMParsingError(Exception):
     pass
 
-class EIMParserLogger():
-    logger_levels = ['INFO', 'WARN', 'ERROR', 'FAILURE']
-
-    def __init__(self, level='WARN'):
-        """
-        New EIMParserLogger
-
-        >>> l = EIMParserLogger()
-        >>> l.level
-        'WARN'
-        >>> l = EIMParserLogger('INFO')
-        >>> l.level
-        'INFO'
-        """
-        if level in EIMParserLogger.logger_levels:
-            self.level = level
-
-    def log(self, message, level):
-        """
-        Logs a message to the console.
-
-        >>> l = EIMParserLogger('INFO')
-        >>> l.log('Some information', 'INFO')
-        [INFO]: Some information
-        >>> l = EIMParserLogger('WARN')
-        >>> l.log('Some information', 'INFO')
-        >>> l.log('A warning', 'WARN')
-        [WARN]: A warning
-        """
-        if EIMParserLogger.logger_levels.index(level) >= EIMParserLogger.logger_levels.index(self.level):
-            print('[%s]: %s' % (level.upper(), message))
-
 class EIMParser():
 
     def __init__(self, filepath, logger=None):
         """
         Initializes an EIMParser with a reference to the appropriate filepath.
 
-        A filepath must be provided:
+        A filepath must be provided.
         >>> p = EIMParser(filepath = None)
         Traceback (most recent call last):
             ...
@@ -72,14 +40,21 @@ class EIMParser():
 
         self._filepath = os.path.abspath(filepath)
         self._file = None
-        self._experiment_metadata = {'location':None, 'terminal':None, 'session_id':None}
+        self._experiment_metadata = {'location':None, 'terminal':None, 'session_number':None}
         self.gather_metadata()
 
     def gather_metadata(self):
       """
       Gathers metadata for this document from the directory tree.
 
-      >>> p = EIMParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt')
+      >>> p = EIMParser('./test_data/SINGAPORE/SERVER/2012-07-20/SingaporeTerminal/T2/21-07-2012/experiment/T2_S0626_RESET.txt')
+      >>> p._experiment_metadata['location'] = None
+      >>> p._experiment_metadata['terminal'] = None
+      >>> p.gather_metadata()
+      >>> p._experiment_metadata['location']
+      'singapore'
+      >>> p._experiment_metadata['terminal']
+      2
       """
       self.gather_location()
       self.gather_terminal()
@@ -88,22 +63,33 @@ class EIMParser():
       """
       Gathers experiment location for this document from the directory tree.
 
-      >>> p = EIMParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S9999_1nfo.txt')
+      >>> p = EIMParser('./test_data/SINGAPORE/SERVER/2012-07-20/SingaporeTerminal/T2/21-07-2012/experiment/T2_S0626_RESET.txt')
+      >>> p._experiment_metadata['location'] = None
+      >>> p.gather_location()
       >>> p._experiment_metadata['location']
-      'Manila'
+      'singapore'
       """
       match = None
       for location in experiment_locations:
         match = re.search('(%s)' % location, self._filepath)
         if match:
-          self._experiment_metadata['location'] = match.groups()[0].lower().capitalize()
+          self._experiment_metadata['location'] = match.groups()[0].lower()
           return
 
       raise EIMParsingError('Could not determine location for %s' % self._filepath)
 
     def gather_terminal(self):
+        """
+        Gathers experiment terminal number for this document
+
+        >>> p = EIMParser('./test_data/SINGAPORE/SERVER/2012-07-20/SingaporeTerminal/T2/21-07-2012/experiment/T2_S0626_RESET.txt')
+        >>> p._experiment_metadata['terminal'] = None
+        >>> p.gather_terminal()
+        >>> p._experiment_metadata['terminal']
+        2
+        """
         match = None
-        match = re.search('T(\d)_\w\d+_.*.txt', self._filepath)
+        match = re.search('.*T(\d).*.txt', self._filepath)
         if match:
             self._experiment_metadata['terminal'] = int(match.groups()[0])
             return
@@ -156,6 +142,16 @@ class EIMParser():
     def parse(self):
         """
         Parses all lines in a file.
+
+        >>> f = open('./.MANILA_T4_S9898_test.txt', 'w')
+        >>> f.close()
+        >>> parser = EIMParser(filepath = './.MANILA_T4_S9898_test.txt')
+        >>> parser.parse()
+        >>> parser._experiment_metadata['session_number']
+        9898
+
+        >>> import os
+        >>> os.unlink(f.name)
         """
         try:
             self.open_file()
@@ -180,7 +176,7 @@ class EIMParser():
             # Parse session id
             match = re.search('T\d_S(\d{4})_.*.txt', self._filepath)
             if match:
-                self._experiment_metadata['session_id'] = int(match.groups()[0])
+                self._experiment_metadata['session_number'] = int(match.groups()[0])
             else:
                 raise EIMParsingError("No valid session id found in filename %s" % self._filepath)
 
@@ -195,7 +191,9 @@ class EIMParser():
         pass
 
     def to_dict(self):
-        return dict()
+        base = dict()
+        base['metadata'] = self._experiment_metadata
+        return base
 
     def to_json_file(self):
         """
@@ -206,8 +204,14 @@ class EIMParser():
         >>> p = EIMParser('./.MANILA_T2_S9898_test.txt')
         >>> p.to_json_file()
         >>> j = open('./.MANILA_T2_S9898_test.json', 'r')
-        >>> j.read()
-        '{}'
+        >>> import json
+        >>> json_dict = json.load(j)
+        >>> json_dict['metadata']['location']
+        'manila'
+        >>> json_dict['metadata']['session_number']
+        
+        >>> json_dict['metadata']['terminal']
+        2
         >>> j.close()
         >>> os.unlink(f.name)
         >>> os.unlink(j.name)

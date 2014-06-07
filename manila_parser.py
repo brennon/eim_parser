@@ -12,38 +12,50 @@ import logging
 import cProfile
 
 def main():
-    usage = "usage: %prog [base_directory]"
+
+    # Setup option parser
+    usage = "usage: %prog [options]"
     parser = OptionParser(usage=usage)
     parser.add_option('-d', '--dir', dest='root_dir', default=None, help='root directory for parsing')
     (options, args) = parser.parse_args()
 
+    # Setup loggers, logging errors and higher to screen, and debug and higher
+    # to file
     logger = logging.getLogger('manila_parser')
     logger.setLevel(logging.DEBUG)
     fh = logging.FileHandler('manila_parser.log')
     fh.setLevel(logging.DEBUG)
     ch = logging.StreamHandler()
-    ch.setLevel(logging.ERROR)
+    ch.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
     logger.addHandler(fh)
     logger.addHandler(ch)
 
+    # If a root directory was specified, use it
     if options.root_dir:
         root_dir = options.root_dir
+    # Otherwise, use the current directory as the root directory
     else:
         root_dir = os.getcwd()
 
+    # Create lists to hold paths of all and ignored files
     file_list = list()
     ignored_files = list()
 
     # Iterate over all files below root_dir
     for root, dirs, files in os.walk(root_dir):
         for f in files:
+
+            # If the file is a text file, add it to the list of files to be
+            # parsed
             if re.search('.txt$', f):
                 filepath = "%s/%s" % (root, f)
-                logger.info('Adding %s to worklist' % filepath)
+                logger.debug('Adding %s to worklist' % filepath)
                 file_list.append(filepath)
+
+            # Otherwise, add it to the ignored file list
             else:
                 ignored_files.append(f)
 
@@ -74,10 +86,12 @@ def main():
 
     # Iterate over collected files
     for f in file_list:
+
         # Is this a reset file?
         if re.search('T\d_S\d{4,}_RESET.txt', f):
+
             # Parse reset file
-            logger.info("Parsing %s" % f)
+            logger.debug("Parsing %s" % f)
 
             # Build and use an EIMResetParser for this file
             try:
@@ -90,21 +104,20 @@ def main():
 
             # Update counts
             type_counts['RESET'] += 1
-        """
-
+        '''
         # Is this an info file?
         elif re.search('T\d_S\d{4,}_1nfo.txt', f):
             # Parse info file
-            logger.info("Parsing %s" % f)
+            logger.debug("Parsing %s" % f)
 
             # Build and use an EIMInfoParser for this file
-            try:
-                p = EIMInfoParser(f, logger)
-                p.parse()
-                p.to_json_file()
-
-            except Exception as e:
-                logger.error("Error parsing %s: %s" % (f, e))
+            # try:
+            #     p = EIMInfoParser(f, logger)
+            #     p.parse()
+            #     p.to_json_file()
+            #
+            # except Exception as e:
+            #     logger.error("Error parsing %s: %s" % (f, e))
 
             # Update counts
             type_counts['INFO'] += 1
@@ -112,16 +125,16 @@ def main():
         # Is this a test file?
         elif re.search('T\d_S\d{4,}_TEST.txt', f):
             # Parse test file
-            logger.info("Parsing %s" % f)
+            logger.debug("Parsing %s" % f)
 
             # Build and use an EIMTestParser for this file
-            try:
-                p = EIMTestParser(f, logger)
-                p.parse()
-                p.to_json_file()
-
-            except:
-                logger.error("Error parsing %s" % f)
+            # try:
+            #     p = EIMTestParser(f, logger)
+            #     p.parse()
+            #     p.to_json_file()
+            #
+            # except:
+            #     logger.error("Error parsing %s" % f)
 
             # Update counts
             type_counts['TEST'] += 1
@@ -129,61 +142,58 @@ def main():
         # Is this a song file?
         elif re.search('T\d_S\d{4,}_[HRST]\d{3,}.txt', f):
             # Parse song file
-            logger.info("Parsing %s" % f)
+            logger.debug("Parsing %s" % f)
 
             # Build and use an EIMSongParser for this file
-            try:
-                p = EIMSongParser(f, logger)
-                p.parse()
-                p.to_json_file()
-
-            except:
-                logger.error("Error parsing %s" % f)
+            # try:
+            #     p = EIMSongParser(f, logger)
+            #     p.parse()
+            #     p.to_json_file()
+            #
+            # except:
+            #     logger.error("Error parsing %s" % f)
 
             # Update counts
             type_counts['SONG'] += 1
 
         # Is this an answer file?
         elif re.search('T\d_S\d{4,}_answers.txt', f):
-
             # Parse answer file
-            logger.info("Parsing %s" % f)
+            logger.debug("Parsing %s" % f)
 
             # Build and use an EIMAnswersParser for this file
-            try:
-                p = EIMAnswersParser(f, logger)
-                p.parse()
-                p.to_json_file()
-
-            except:
-                logger.error("Error parsing %s" % f)
+            # try:
+            #     p = EIMAnswersParser(f, logger)
+            #     p.parse()
+            #     p.to_json_file()
+            #
+            # except:
+            #     logger.error("Error parsing %s" % f)
 
             # Update counts
             type_counts['ANSWERS'] += 1
 
         # Is this a debug file?
         elif re.search('T\d_S\d{4,}_debug.txt', f):
-
             # Parse debug file
-            logger.info("Parsing %s" % f)
+            logger.debug("Parsing %s" % f)
 
             # Build and use an EIMDebugParser for this file
-            try:
-                p = EIMDebugParser(f, logger)
-                p.parse()
-                p.to_json_file()
-
-            except:
-                logger.error("Error parsing %s" % f)
+            # try:
+            #     p = EIMDebugParser(f, logger)
+            #     p.parse()
+            #     p.to_json_file()
+            #
+            # except:
+            #     logger.error("Error parsing %s" % f)
 
             # Update counts
             type_counts['DEBUG'] += 1
 
         else:
             type_counts['UNKNOWN'] += 1
-            print("WARNING - Unrecognized file:",f)
-        """
-
+            logger.warn("Unrecognized file: %s" % f)
+        '''
     logger.info(type_counts)
 
 if __name__ == "__main__":

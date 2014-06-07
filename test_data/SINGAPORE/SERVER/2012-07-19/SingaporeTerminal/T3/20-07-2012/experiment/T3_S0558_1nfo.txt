@@ -1,0 +1,9 @@
+type , symbol audio ;
+SONGS , symbol "H001.wav-S015.wav-T009.wav" ;
+START , symbol "11:27:31" ;
+DATE , symbol "07-19-2012" ;
+TEST , symbol "11:28:16" ;
+"song1" , symbol "11:29:56" ;
+"song2" , symbol "11:31:54" ;
+"song3" , symbol "11:33:57" ;
+END , symbol "11:35:57" ;

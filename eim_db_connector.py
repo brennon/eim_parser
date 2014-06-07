@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-from eim_parser import EIMParserLogger
+# from eim_parser import EIMParserLogger
 
 def recursive_update(old_dict, new_dict):
     """
@@ -21,10 +21,7 @@ def recursive_update(old_dict, new_dict):
 class EIMDBConnector():
     def __init__(self, logger=None):
         self._client = None
-        if logger == None:
-            self.logger = EIMParserLogger()
-        else:
-            self.logger = logger
+        self.logger = logger
 
     def connect(self, hostname='muse.cc.vt.edu', port=27017):
         """

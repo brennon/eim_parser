@@ -104,20 +104,20 @@ def main():
 
             # Update counts
             type_counts['RESET'] += 1
-        '''
+
         # Is this an info file?
         elif re.search('T\d_S\d{4,}_1nfo.txt', f):
             # Parse info file
             logger.debug("Parsing %s" % f)
 
             # Build and use an EIMInfoParser for this file
-            # try:
-            #     p = EIMInfoParser(f, logger)
-            #     p.parse()
-            #     p.to_json_file()
-            #
-            # except Exception as e:
-            #     logger.error("Error parsing %s: %s" % (f, e))
+            try:
+                p = EIMInfoParser(f, logger)
+                p.parse()
+                p.to_json_file()
+
+            except Exception as e:
+                logger.error("Error parsing %s: %s" % (f, e))
 
             # Update counts
             type_counts['INFO'] += 1
@@ -162,13 +162,13 @@ def main():
             logger.debug("Parsing %s" % f)
 
             # Build and use an EIMAnswersParser for this file
-            # try:
-            #     p = EIMAnswersParser(f, logger)
-            #     p.parse()
-            #     p.to_json_file()
-            #
-            # except:
-            #     logger.error("Error parsing %s" % f)
+            try:
+                p = EIMAnswersParser(f, logger)
+                p.parse()
+                p.to_json_file()
+
+            except:
+                logger.error("Error parsing %s" % f)
 
             # Update counts
             type_counts['ANSWERS'] += 1
@@ -190,10 +190,13 @@ def main():
             # Update counts
             type_counts['DEBUG'] += 1
 
+        elif re.search('T\d_S\d{4}_email.txt', f):
+            logger.debug("Ignoring %s" % f)
+
         else:
             type_counts['UNKNOWN'] += 1
             logger.warn("Unrecognized file: %s" % f)
-        '''
+
     logger.info(type_counts)
 
 if __name__ == "__main__":

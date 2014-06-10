@@ -1,9 +1,0 @@
-type , symbol audio ;
-SONGS , symbol "R017.wav-T012.wav-S005.wav" ;
-START , symbol "17:13:49" ;
-DATE , symbol "07-19-2012" ;
-TEST , symbol "17:15:16" ;
-"song1" , symbol "17:16:28" ;
-"song2" , symbol "17:19:00" ;
-"song3" , symbol "17:21:18" ;
-END , symbol "17:23:31" ;

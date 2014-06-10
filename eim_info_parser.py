@@ -37,17 +37,6 @@ class EIMInfoParser(EIMParser):
         """
         Assembles a dictionary of parsed data.
 
-type , symbol audio ;
-SONGS , symbol "H015.wav-S014.wav-H001.wav" ;
-START , symbol "14:25:58" ;
-DATE , symbol "07-20-2012" ;
-TEST , symbol "14:26:37" ;
-"song1" , symbol "14:27:08" ;
-"song2" , symbol "14:29:54" ;
-"song3" , symbol "14:32:19" ;
-END , symbol "14:34:36" ;
-
-
         >>> p = EIMInfoParser('./test_data/SINGAPORE/SERVER/2012-07-20/SingaporeTerminal/T3/21-07-2012/experiment/T3_S0577_1nfo.txt')
         >>> p.parse()
 
@@ -128,11 +117,16 @@ END , symbol "14:34:36" ;
         >>> p._song_timestamps
         ['2012-12-20T12:58:37', '2012-12-20T13:01:04', '2012-12-20T13:03:19']
 
+        >>> p = EIMInfoParser('./test_data/T1_MANILA_S9999_1nfo.txt')
+        >>> p.parse_line('DATE, 08-05-2010;', 12)
+        >>> p._date
+        datetime.date(2010, 8, 5)
+
         >>> import os
         >>> os.unlink('./test_data/T1_MANILA_S9999_1nfo.txt')
         """
         timestamp_tags = {'START', 'TEST', 'END'}
-        match = re.search('"?(\w+)"? ,.*', line)
+        match = re.search('\"?(\w+)\"?\s?,?', line)
 
         if match:
             tag = match.groups()[0].upper()
@@ -148,6 +142,11 @@ END , symbol "14:34:36" ;
 
             elif tag[:-1] == 'SONG':
                 self.parse_song_timestamp_line(line)
+
+            elif re.search('^[HRST]\d{3}', tag):
+                song_file = tag + ".wav"
+                if self._songs and song_file in self._songs:
+                    self.parse_song_timestamp_line(line)
 
         else:
             raise EIMParsingError('Unprocessed line: %s:%d' % (self._filepath, number))
@@ -274,6 +273,13 @@ END , symbol "14:34:36" ;
             ...
         eim_parser.EIMParsingError:
 
+        >>> p = EIMInfoParser('./test_data/T1_MANILA_S9999_1nfo.txt')
+        >>> p._date = datetime.date(2013, 8, 14)
+        >>> p._songs = ['H006.wav','T001.wav','R010.wav']
+        >>> p.parse_song_timestamp_line('T001, 17:29:38;')
+        >>> p._song_timestamps[0]
+        '2013-08-14T17:29:38'
+
         >>> import os
         >>> os.unlink('./test_data/T1_MANILA_S9999_1nfo.txt')
         """
@@ -282,11 +288,16 @@ END , symbol "14:34:36" ;
                     % self._filepath)
 
         song_match = re.search('song(\d)', line)
-        if not song_match:
+        direct_match = re.search('([HRST]\d{3})', line)
+
+        if song_match:
+            song = song_match.groups()[0]
+        elif direct_match:
+            song = direct_match.groups()[0]
+        else:
             raise EIMParsingError("No valid song tag found in %s"
                     % self._filepath)
-        else:
-            song = song_match.groups()[0]
+
 
         time_match = re.search('(\d{2}):(\d{2}):(\d{2})', line)
 
@@ -318,6 +329,10 @@ END , symbol "14:34:36" ;
         >>> p.parse_date_line('DATE , symbol "12-20-2012" ;')
         >>> p._date
         datetime.date(2012, 12, 20)
+
+        >>> p.parse_date_line('DATE, 08-05-2010;')
+        >>> p._date
+        datetime.date(2010, 8, 5)
 
         >>> p.parse_date_line('no date here')
         Traceback (most recent call last):

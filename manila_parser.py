@@ -26,7 +26,7 @@ def main():
     fh = logging.FileHandler('manila_parser.log')
     fh.setLevel(logging.DEBUG)
     ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+    ch.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
@@ -84,14 +84,16 @@ def main():
         logger.critical('Could not connect and authenticate to database--exiting.')
         sys.exit()
 
+    total_files = len(file_list)
+
     # Iterate over collected files
-    for f in file_list:
+    for (index, f) in enumerate(file_list):
 
         # Is this a reset file?
         if re.search('T\d_S\d{4,}_RESET.txt', f):
 
             # Parse reset file
-            logger.debug("Parsing %s" % f)
+            logger.debug("(%d/%d) Parsing %s" % (index, total_files, f))
 
             # Build and use an EIMResetParser for this file
             try:
@@ -108,7 +110,7 @@ def main():
         # Is this an info file?
         elif re.search('T\d_S\d{4,}_1nfo.txt', f):
             # Parse info file
-            logger.debug("Parsing %s" % f)
+            logger.debug("(%d/%d) Parsing %s" % (index, total_files, f))
 
             # Build and use an EIMInfoParser for this file
             try:
@@ -125,7 +127,7 @@ def main():
         # Is this a test file?
         elif re.search('T\d_S\d{4,}_TEST.txt', f):
             # Parse test file
-            logger.debug("Parsing %s" % f)
+            logger.debug("(%d/%d) Parsing %s" % (index, total_files, f))
 
             # Build and use an EIMTestParser for this file
             # try:
@@ -142,7 +144,7 @@ def main():
         # Is this a song file?
         elif re.search('T\d_S\d{4,}_[HRST]\d{3,}.txt', f):
             # Parse song file
-            logger.debug("Parsing %s" % f)
+            logger.debug("(%d/%d) Parsing %s" % (index, total_files, f))
 
             # Build and use an EIMSongParser for this file
             # try:
@@ -159,7 +161,7 @@ def main():
         # Is this an answer file?
         elif re.search('T\d_S\d{4,}_answers.txt', f):
             # Parse answer file
-            logger.debug("Parsing %s" % f)
+            logger.debug("(%d/%d) Parsing %s" % (index, total_files, f))
 
             # Build and use an EIMAnswersParser for this file
             try:
@@ -176,7 +178,7 @@ def main():
         # Is this a debug file?
         elif re.search('T\d_S\d{4,}_debug.txt', f):
             # Parse debug file
-            logger.debug("Parsing %s" % f)
+            logger.debug("(%d/%d) Parsing %s" % (index, total_files, f))
 
             # Build and use an EIMDebugParser for this file
             # try:
@@ -191,11 +193,11 @@ def main():
             type_counts['DEBUG'] += 1
 
         elif re.search('T\d_S\d{4}_email.txt', f):
-            logger.debug("Ignoring %s" % f)
+            logger.debug("(%d/%d) Parsing %s" % (index, total_files, f))
 
         else:
             type_counts['UNKNOWN'] += 1
-            logger.warn("Unrecognized file: %s" % f)
+            logger.warn("(%d/%d) Unrecognized file: %s" % (index, total_files, f))
 
     logger.info(type_counts)
 

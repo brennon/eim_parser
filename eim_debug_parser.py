@@ -9,32 +9,6 @@ class EIMDebugParser(EIMParser):
         super().__init__(filepath, logger)
         self.debug_data = []
 
-    def to_dict(self):
-        """
-        Assembles a dictionary of parsed data.
-
-        >>> p = EIMDebugParser('./data/MANILA/SERVER/2012-12-20/ManilaTerminal/T2/20-12-2012/experiment/T2_S0448_debug.txt')
-        >>> p.parse()
-        >>> debug_dict = p.to_dict()
-        >>> debug_dict['debug'][1] == {'start':'13:01:04','length':95628.719,'end':'13:02:40'}
-        True
-
-        >>> f = open('./.MANILA_T2_S9999_debug.txt', 'w')
-        >>> f.close()
-        >>> p = EIMDebugParser('./.MANILA_T2_S9999_debug.txt')
-        >>> p.parse()
-        >>> debug_dict = p.to_dict()
-        >>> debug_dict['debug'] == []
-        True
-        >>> os.unlink(f.name)
-        """
-        data = {
-            'session_id':self._experiment_metadata['session_id'],
-            'terminal':self._experiment_metadata['terminal'],
-            'location':self._experiment_metadata['location'],
-            'debug':self.debug_data}
-        return data
-
     def parse(self):
         """
         Parses all text from a debug file.

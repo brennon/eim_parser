@@ -1,0 +1,2 @@
+- Remove nulls
+- Connect info files to media

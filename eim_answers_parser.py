@@ -22,64 +22,6 @@ class EIMAnswersParser(EIMParser):
         self.emotion_indices = None
         self.temporary_emotion_indices = None
         self.music_styles = list()
-        self.version = None
-
-        self.determine_file_version()
-
-    def determine_file_version(self):
-        """
-        Determines the file version from among the four Dublin versions and the
-        one version used everywhere else.
-
-        >>> p = EIMAnswersParser('./test_data/DUBLIN/MuSE_SERVER/06-Jul-2010/T4_S0106_answers.txt')
-        >>> p.determine_file_version()
-        >>> p.version
-        1
-
-        >>> p = EIMAnswersParser('./test_data/DUBLIN/MuSE_SERVER/20-Aug-2010/T4_S0770_answers.txt')
-        >>> p.determine_file_version()
-        >>> p.version
-        2
-
-        >>> p = EIMAnswersParser('./test_data/DUBLIN/MuSE_SERVER/05-Sep-2010/T3_S1016_answers.txt')
-        >>> p.determine_file_version()
-        >>> p.version
-        3
-
-        >>> p = EIMAnswersParser('./test_data/DUBLIN/MuSE_SERVER/30-Sep-2010/T3_S1266_answers.txt')
-        >>> p.determine_file_version()
-        >>> p.version
-        4
-
-        >>> p = EIMAnswersParser('./test_data/NYC/SERVER_NYC/2011-07-07/terminals/T2/2011-07-07/T2_S0342_answers.txt')
-        >>> p.determine_file_version()
-        >>> p.version
-        5
-        """
-        dublin_a = (datetime.datetime(2010,7,1),datetime.datetime(2010,7,21,23,59))
-        dublin_b = (datetime.datetime(2010,7,23),datetime.datetime(2010,8,29,23,59))
-        dublin_c = (datetime.datetime(2010,8,31),datetime.datetime(2010,9,19,23,59))
-        dublin_d = (datetime.datetime(2010,9,21),datetime.datetime(2010,10,1,23,59))
-
-        filetime = datetime.datetime.fromtimestamp(os.stat(self._filepath).st_mtime)
-
-        if filetime >= dublin_a[0] and filetime <= dublin_a[1]:
-            self.version = 1
-            return
-        elif filetime >= dublin_b[0] and filetime <= dublin_b[1]:
-            self.version = 2
-            return
-        elif filetime >= dublin_c[0] and filetime <= dublin_c[1]:
-            self.version = 3
-            return
-        elif filetime >= dublin_d[0] and filetime <= dublin_d[1]:
-            self.version = 4
-            return
-        elif filetime >= dublin_d[1]:
-            self.version = 5
-            return
-
-        raise EIMParsingError('Could not determine answer file version: %s' % self._filepath)
 
     def to_dict(self):
         """

@@ -5,7 +5,6 @@ from eim_info_parser import EIMInfoParser
 from eim_test_parser import EIMTestParser, EIMSongParser
 from eim_answers_parser import EIMAnswersParser
 from eim_debug_parser import EIMDebugParser
-from eim_db_connector import EIMDBConnector
 from eim_reset_parser import EIMResetParser
 from pprint import pprint
 import logging
@@ -73,17 +72,6 @@ def main():
         'SONG':0,
         'UNKNOWN':0}
 
-
-    # Create database connector
-    db = EIMDBConnector(logger)
-
-    try:
-        db.connect()
-        db.authenticate_to_database('eim', 'eim', 'emotoheaven')
-    except:
-        logger.critical('Could not connect and authenticate to database--exiting.')
-        sys.exit()
-
     total_files = len(file_list)
 
     # Iterate over collected files
@@ -93,7 +81,7 @@ def main():
         if re.search('T\d_S\d{4,}_RESET.txt', f):
 
             # Parse reset file
-            logger.debug("(%d/%d) Parsing %s" % (index, total_files, f))
+            print_parsing_status(index + 1, total_files, f)
 
             # Build and use an EIMResetParser for this file
             try:
@@ -110,7 +98,7 @@ def main():
         # Is this an info file?
         elif re.search('T\d_S\d{4,}_1nfo.txt', f):
             # Parse info file
-            logger.debug("(%d/%d) Parsing %s" % (index, total_files, f))
+            print_parsing_status(index + 1, total_files, f)
 
             # Build and use an EIMInfoParser for this file
             try:
@@ -127,16 +115,16 @@ def main():
         # Is this a test file?
         elif re.search('T\d_S\d{4,}_TEST.txt', f):
             # Parse test file
-            logger.debug("(%d/%d) Parsing %s" % (index, total_files, f))
+            print_parsing_status(index + 1, total_files, f)
 
             # Build and use an EIMTestParser for this file
-            # try:
-            #     p = EIMTestParser(f, logger)
-            #     p.parse()
-            #     p.to_json_file()
-            #
-            # except:
-            #     logger.error("Error parsing %s" % f)
+            try:
+                p = EIMTestParser(f, logger)
+                p.parse()
+                p.to_json_file()
+
+            except:
+                logger.error("Error parsing %s" % f)
 
             # Update counts
             type_counts['TEST'] += 1
@@ -144,16 +132,16 @@ def main():
         # Is this a song file?
         elif re.search('T\d_S\d{4,}_[HRST]\d{3,}.txt', f):
             # Parse song file
-            logger.debug("(%d/%d) Parsing %s" % (index, total_files, f))
+            print_parsing_status(index + 1, total_files, f)
 
             # Build and use an EIMSongParser for this file
-            # try:
-            #     p = EIMSongParser(f, logger)
-            #     p.parse()
-            #     p.to_json_file()
-            #
-            # except:
-            #     logger.error("Error parsing %s" % f)
+            try:
+                p = EIMSongParser(f, logger)
+                p.parse()
+                p.to_json_file()
+
+            except:
+                logger.error("Error parsing %s" % f)
 
             # Update counts
             type_counts['SONG'] += 1
@@ -161,7 +149,7 @@ def main():
         # Is this an answer file?
         elif re.search('T\d_S\d{4,}_answers.txt', f):
             # Parse answer file
-            logger.debug("(%d/%d) Parsing %s" % (index, total_files, f))
+            print_parsing_status(index + 1, total_files, f)
 
             # Build and use an EIMAnswersParser for this file
             try:
@@ -178,7 +166,7 @@ def main():
         # Is this a debug file?
         elif re.search('T\d_S\d{4,}_debug.txt', f):
             # Parse debug file
-            logger.debug("(%d/%d) Parsing %s" % (index, total_files, f))
+            print_parsing_status(index + 1, total_files, f)
 
             # Build and use an EIMDebugParser for this file
             # try:
@@ -193,13 +181,16 @@ def main():
             type_counts['DEBUG'] += 1
 
         elif re.search('T\d_S\d{4}_email.txt', f):
-            logger.debug("(%d/%d) Parsing %s" % (index, total_files, f))
+            print_parsing_status(index + 1, total_files, f)
 
         else:
             type_counts['UNKNOWN'] += 1
             logger.warn("(%d/%d) Unrecognized file: %s" % (index, total_files, f))
 
     logger.info(type_counts)
+
+def print_parsing_status(current, total, filename):
+    logger.debug("(%d/%d) Parsing %s" % (current, total, filename))
 
 if __name__ == "__main__":
     cProfile.run('main()', 'manila_parser.prof')

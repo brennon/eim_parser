@@ -2,3 +2,6 @@
 - Connect info files to media
 - Ignore empty arrays in signal files
 - Link signals to media
+- Compile JSON files
+- Import JSON files
+- Connect sessions to signals

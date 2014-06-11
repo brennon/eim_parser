@@ -20,9 +20,9 @@ def main():
 
     # Setup loggers, logging errors and higher to screen, and debug and higher
     # to file
-    logger = logging.getLogger('manila_parser')
+    logger = logging.getLogger('master_parser')
     logger.setLevel(logging.DEBUG)
-    fh = logging.FileHandler('manila_parser.log')
+    fh = logging.FileHandler('master_parser.log')
     fh.setLevel(logging.DEBUG)
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
@@ -81,7 +81,7 @@ def main():
         if re.search('T\d_S\d{4,}_RESET.txt', f):
 
             # Parse reset file
-            print_parsing_status(index + 1, total_files, f)
+            print_parsing_status(index + 1, total_files, f, logger)
 
             # Build and use an EIMResetParser for this file
             try:
@@ -98,7 +98,7 @@ def main():
         # Is this an info file?
         elif re.search('T\d_S\d{4,}_1nfo.txt', f):
             # Parse info file
-            print_parsing_status(index + 1, total_files, f)
+            print_parsing_status(index + 1, total_files, f, logger)
 
             # Build and use an EIMInfoParser for this file
             try:
@@ -115,7 +115,7 @@ def main():
         # Is this a test file?
         elif re.search('T\d_S\d{4,}_TEST.txt', f):
             # Parse test file
-            print_parsing_status(index + 1, total_files, f)
+            print_parsing_status(index + 1, total_files, f, logger)
 
             # Build and use an EIMTestParser for this file
             try:
@@ -132,7 +132,7 @@ def main():
         # Is this a song file?
         elif re.search('T\d_S\d{4,}_[HRST]\d{3,}.txt', f):
             # Parse song file
-            print_parsing_status(index + 1, total_files, f)
+            print_parsing_status(index + 1, total_files, f, logger)
 
             # Build and use an EIMSongParser for this file
             try:
@@ -149,7 +149,7 @@ def main():
         # Is this an answer file?
         elif re.search('T\d_S\d{4,}_answers.txt', f):
             # Parse answer file
-            print_parsing_status(index + 1, total_files, f)
+            print_parsing_status(index + 1, total_files, f, logger)
 
             # Build and use an EIMAnswersParser for this file
             try:
@@ -166,7 +166,7 @@ def main():
         # Is this a debug file?
         elif re.search('T\d_S\d{4,}_debug.txt', f):
             # Parse debug file
-            print_parsing_status(index + 1, total_files, f)
+            print_parsing_status(index + 1, total_files, f, logger)
 
             # Build and use an EIMDebugParser for this file
             # try:
@@ -181,7 +181,7 @@ def main():
             type_counts['DEBUG'] += 1
 
         elif re.search('T\d_S\d{4}_email.txt', f):
-            print_parsing_status(index + 1, total_files, f)
+            print_parsing_status(index + 1, total_files, f, logger)
 
         else:
             type_counts['UNKNOWN'] += 1
@@ -189,8 +189,9 @@ def main():
 
     logger.info(type_counts)
 
-def print_parsing_status(current, total, filename):
+def print_parsing_status(current, total, filename, logger):
     logger.debug("(%d/%d) Parsing %s" % (current, total, filename))
 
 if __name__ == "__main__":
-    cProfile.run('main()', 'manila_parser.prof')
+    # cProfile.run('main()', 'master_parser.prof')
+    main()

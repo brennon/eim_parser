@@ -1,11 +1,5 @@
 import os, re, sys, pymongo, logging, json, cProfile
 from optparse import OptionParser
-from eim_parser import EIMParser, EIMParsingError
-from eim_info_parser import EIMInfoParser
-from eim_test_parser import EIMTestParser, EIMSongParser
-from eim_answers_parser import EIMAnswersParser
-from eim_debug_parser import EIMDebugParser
-from eim_db_connector import EIMDBConnector
 from subprocess import call
 from pprint import pprint
 
@@ -38,7 +32,7 @@ def main():
     # Iterate over all files below root_dir
     for root, dirs, files in os.walk(root_dir):
         for f in files:
-            if re.search('^T\d_S\d{4,}.json$', f):
+            if re.search('^T\d_S\d{4,}(?:_[HRST]\d{3})?.json$', f):
                 filepath = os.path.abspath(os.path.join(root, f))
                 logger.debug('Adding %s to worklist' % filepath)
                 file_list.append(filepath)
@@ -50,7 +44,12 @@ def main():
 
     # Iterate over collected files
     for f in file_list:
-        call(['mongoimport', '-h', 'muse.cc.vt.edu', '-d', 'eim', '-c', 'sessions', '--file', f])
+        collection = None
+        if re.search('[HRST]\d{3}.json', f):
+            collection = 'new_signals'
+        else:
+            collection = 'new_sessions'
+        call(['mongoimport', '-h', 'muse.cc.vt.edu', '-d', 'eim', '-c', collection, '--file', f])
 
 if __name__ == "__main__":
     main()

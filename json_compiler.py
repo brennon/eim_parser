@@ -1,11 +1,5 @@
 import os, re, sys, pymongo, logging, json, cProfile
 from optparse import OptionParser
-from eim_parser import EIMParser, EIMParsingError
-from eim_info_parser import EIMInfoParser
-from eim_test_parser import EIMTestParser, EIMSongParser
-from eim_answers_parser import EIMAnswersParser
-from eim_debug_parser import EIMDebugParser
-from eim_db_connector import EIMDBConnector
 from pprint import pprint
 
 def main():
@@ -14,12 +8,12 @@ def main():
     parser.add_option('-d', '--dir', dest='root_dir', default=None, help='root directory for parsing')
     (options, args) = parser.parse_args()
 
-    logger = logging.getLogger('json_loader')
+    logger = logging.getLogger('json_compiler')
     logger.setLevel(logging.DEBUG)
-    fh = logging.FileHandler('json_loader')
+    fh = logging.FileHandler('json_compiler.log')
     fh.setLevel(logging.DEBUG)
     ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+    ch.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
@@ -47,8 +41,10 @@ def main():
     logger.info("Parsing %d .json files below %s" % (len(file_list), root_dir))
     logger.info("Ignoring %d files" % len(ignored_files))
 
+    total_files = len(file_list)
+
     # Iterate over collected files
-    for f in file_list:
+    for (count, f) in enumerate(file_list):
 
         # Get existing JSON dictionary
         prefix = None
@@ -64,7 +60,7 @@ def main():
         if match:
             prefix = match.groups()[0]
             base_filename = '%s.json' % prefix
-            signals_filename = '%s_signals.json' % prefix
+            # signals_filename = '%s_signals.json' % prefix
         else:
             success = False
 
@@ -85,31 +81,35 @@ def main():
             if re.search('T\d_S\d{4,}_RESET.json', f):
 
                 # Parse reset file
-                logger.debug("Parsing %s" % f)
+                print_skipping_status(count + 1, total_files, f, logger)
 
-                try:
-                    reset_file = open(f, 'r')
-                    reset_json = json.load(reset_file)
-                    base_dict.update(reset_json)
-
-                except Exception as e:
-                    success = False
-                    logger.error("Error parsing %s: %s" % (f, e))
-
-                finally:
-                    if not reset_file.closed:
-                        reset_file.close()
+                # try:
+                #     reset_file = open(f, 'r')
+                #     reset_json = json.load(reset_file)
+                #     base_dict.update(reset_json)
+                #
+                # except Exception as e:
+                #     success = False
+                #     logger.error("Error parsing %s: %s" % (f, e))
+                #
+                # finally:
+                #     if not reset_file.closed:
+                #         reset_file.close()
 
             # Is this an info file?
             elif re.search('T\d_S\d{4,}_1nfo.json', f):
 
                 # Parse info file
-                logger.debug("Parsing %s" % f)
+                print_parsing_status(count + 1, total_files, f, logger)
 
                 try:
                     info_file = open(f, 'r')
                     info_json = json.load(info_file)
-                    base_dict.update(info_json)
+                    if not metadata_is_complete(base_dict):
+                        base_dict["metadata"] = info_json["metadata"]
+                    base_dict["media"] = info_json["media"]
+                    base_dict["date"] = info_json["date"]
+                    base_dict["timestamps"] = info_json["timestamps"]
 
                 except Exception as e:
                     success = False
@@ -123,59 +123,61 @@ def main():
             elif re.search('T\d_S\d{4,}_TEST.json', f):
 
                 # Parse test file
-                logger.debug("Parsing %s" % f)
+                print_skipping_status(count + 1, total_files, f, logger)
 
                 # Build and use an EIMTestParser for this file
-                try:
-                    test_file = open(f, 'r')
-                    test_json = json.load(test_file)
-                    if 'signals' not in base_dict.keys():
-                        base_dict['signals'] = dict()
-                    base_dict['signals']['test'] = test_json['signals']['test']
-
-                except Exception as e:
-                    success = False
-                    logger.error("Error parsing %s: %s" % (f, e))
-
-                finally:
-                    if not test_file.closed:
-                        test_file.close()
+                # try:
+                #     test_file = open(f, 'r')
+                #     test_json = json.load(test_file)
+                #     if 'signals' not in base_dict.keys():
+                #         base_dict['signals'] = dict()
+                #     base_dict['signals']['test'] = test_json['signals']['test']
+                #
+                # except Exception as e:
+                #     success = False
+                #     logger.error("Error parsing %s: %s" % (f, e))
+                #
+                # finally:
+                #     if not test_file.closed:
+                #         test_file.close()
 
             # Is this a song file?
             elif re.search('T\d_S\d{4,}_[HRST]\d{3,}.json', f):
 
                 # Parse song file
-                logger.debug("Parsing %s" % f)
+                print_skipping_status(count + 1, total_files, f, logger)
 
                 # Build and use an EIMSongParser for this file
-                try:
-                    song_file = open(f, 'r')
-                    song_json = json.load(song_file)
-                    if 'signals' not in base_dict.keys():
-                        base_dict['signals'] = dict()
-
-                    match = re.search('T\d_S\d{4,}_([HRST]\d{3,})', f);
-                    this_song = match.groups()[0]
-                    base_dict['signals'][this_song] = song_json['signals']['songs'][this_song]
-
-                except Exception as e:
-                    success = False
-                    logger.error("Error parsing %s: %s" % (f, e))
-
-                finally:
-                    if not song_file.closed:
-                        song_file.close()
+                # try:
+                #     song_file = open(f, 'r')
+                #     song_json = json.load(song_file)
+                #     if 'signals' not in base_dict.keys():
+                #         base_dict['signals'] = dict()
+                #
+                #     match = re.search('T\d_S\d{4,}_([HRST]\d{3,})', f);
+                #     this_song = match.groups()[0]
+                #     base_dict['signals'][this_song] = song_json['signals']['songs'][this_song]
+                #
+                # except Exception as e:
+                #     success = False
+                #     logger.error("Error parsing %s: %s" % (f, e))
+                #
+                # finally:
+                #     if not song_file.closed:
+                #         song_file.close()
 
             # Is this an answer file?
             elif re.search('T\d_S\d{4,}_answers.json', f):
 
                 # Parse answer file
-                logger.debug("Parsing %s" % f)
+                print_parsing_status(count + 1, total_files, f, logger)
 
                 try:
                     answer_file = open(f, 'r')
                     answer_json = json.load(answer_file)
-                    base_dict.update(answer_json)
+                    if not metadata_is_complete(base_dict):
+                        base_dict["metadata"] = answer_json["metadata"]
+                    base_dict["answers"] = answer_json["answers"]
 
                 except Exception as e:
                     success = False
@@ -190,20 +192,20 @@ def main():
             elif re.search('T\d_S\d{4,}_debug.json', f):
 
                 # Parse debug file
-                logger.debug("Parsing %s" % f)
+                print_skipping_status(count + 1, total_files, f, logger)
 
-                try:
-                    debug_file = open(f, 'r')
-                    debug_json = json.load(debug_file)
-                    base_dict.update(debug_json)
-
-                except Exception as e:
-                    success = False
-                    logger.error("Error parsing %s: %s" % (f, e))
-
-                finally:
-                    if not debug_file.closed:
-                        debug_file.close()
+                # try:
+                #     debug_file = open(f, 'r')
+                #     debug_json = json.load(debug_file)
+                #     base_dict.update(debug_json)
+                #
+                # except Exception as e:
+                #     success = False
+                #     logger.error("Error parsing %s: %s" % (f, e))
+                #
+                # finally:
+                #     if not debug_file.closed:
+                #         debug_file.close()
 
         if success:
             base_file = open(base_filename, 'w')
@@ -211,6 +213,33 @@ def main():
 
         if base_file and not base_file.closed:
             base_file.close()
+
+def print_parsing_status(current, total, filename, logger):
+    logger.debug("(%d/%d) Parsing %s" % (current, total, filename))
+
+def print_skipping_status(current, total, filename, logger):
+    logger.debug("(%d/%d) Skipping %s" % (current, total, filename))
+
+def metadata_is_complete(check_dict):
+    if "metadata" not in check_dict:
+        return False
+
+    if "session_number" not in check_dict["metadata"]:
+        return False
+    elif not isinstance(check_dict["metadata"]["session_number"], int):
+        return False
+
+    if "terminal" not in check_dict["metadata"]:
+        return False
+    elif not isinstance(check_dict["metadata"]["terminal"], int):
+        return False
+
+    if "location" not in check_dict["metadata"]:
+        return False
+    elif not isinstance(check_dict["metadata"]["location"], str):
+        return False
+
+    return True
 
 if __name__ == "__main__":
     main()

@@ -1,2 +1,4 @@
 - Remove nulls
 - Connect info files to media
+- Ignore empty arrays in signal files
+- Link signals to media

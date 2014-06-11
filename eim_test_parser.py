@@ -77,10 +77,31 @@ class EIMTestParser(EIMParser):
         """
         Parses a line of text from an test file.
 
-        >>> f = open('./test_data/T1_MANILA_S9999_TEST.txt', 'w')
+        >>> f = open('./test_data/.T1_MANILA_S9999_TEST.txt', 'w')
         >>> f.close()
 
-        >>> p = EIMTestParser('./test_data/T1_MANILA_S9999_TEST.txt')
+        >>> p = EIMTestParser('./test_data/DUBLIN/MuSE_SERVER/05-Sep-2010/T1_S0941_H003.txt')
+        >>> p.parse_line('00:00.000 343 503 0 0 0 0 0 0 0 0 0 0 0 0', 1)
+        >>> p.parse_line('00:00.000 343 496 0 0 0 0 0 0 0 0 0 0 0 0', 2)
+        >>> p._timestamps[0]
+        0
+        >>> p._timestamps[1]
+        0
+        >>> p._eda_raw[0]
+        343.0
+        >>> p._eda_raw[1]
+        343.0
+        >>> p._pox_raw[0]
+        503.0
+        >>> p._pox_raw[1]
+        496.0
+
+        >>> p.parse_line('00:00.000 143 145.000 1 0 72.289', 3)
+        Traceback (most recent call last):
+            ...
+        eim_parser.EIMParsingError:
+
+        >>> p = EIMTestParser('./test_data/.T1_MANILA_S9999_TEST.txt')
         >>> p.parse_line('00:00.000 143 145.000 1 0 72.289 1', 1)
         >>> p.parse_line('00:00.001 144 146.000 0 1 73.289 0', 2)
         >>> p._timestamps[0]
@@ -99,16 +120,12 @@ class EIMTestParser(EIMParser):
         73.289
         >>> p._hr_status[1]
         0
-        >>> p.parse_line('00:00.000 143 145.000 1 0 72.289', 3)
-        Traceback (most recent call last):
-            ...
-        eim_parser.EIMParsingError:
 
         >>> import os
-        >>> os.unlink('./test_data/T1_MANILA_S9999_TEST.txt')
+        >>> os.unlink('./test_data/.T1_MANILA_S9999_TEST.txt')
         """
-        match = re.search('(\\d+:\\d+.\\d+) (\\d+) (\\d+.\\d+) (\\d+) (\\d+) (\\d+.\\d+) (\\d+)', line)
-        if match and len(match.groups()) == 7:
+        match = re.search('(\d+:\d+.\d+)\s(\d+)\s(\d+\.?\d*)\s(\d*)\s(\d*) (\d+\.?\d*)\s(\d*)', line)
+        if match and len(match.groups()) == 7 and self.version > 4:
             self._timestamps.append(timestamp_to_millis(match.groups()[0]))
             self._eda_raw.append(float(match.groups()[1]))
             self._eda_filtered.append(float(match.groups()[2]))
@@ -116,6 +133,10 @@ class EIMTestParser(EIMParser):
             self._pox_raw.append(float(match.groups()[4]))
             self._hr.append(float(match.groups()[5]))
             self._hr_status.append(int(match.groups()[6]))
+        elif match and len(match.groups()) == 7 and self.version <= 4:
+            self._timestamps.append(timestamp_to_millis(match.groups()[0]))
+            self._eda_raw.append(float(match.groups()[1]))
+            self._pox_raw.append(float(match.groups()[2]))
         else:
             raise EIMParsingError('Malformed line in \'%s:%d\': %s' % (self._filepath, number, line))
 

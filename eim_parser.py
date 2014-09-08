@@ -145,11 +145,14 @@ class EIMParser():
         >>> p._experiment_metadata['terminal']
         2
         """
+        print('gather_terminal')
         match = None
-        match = re.search('.*T(\d).*.txt', self._filepath)
+        match = re.search('.*T(\d)_.*.txt', self._filepath)
         if match:
             self._experiment_metadata['terminal'] = int(match.groups()[0])
             return
+        else:
+            print('no match')
 
         raise EIMParsingError('Could not determine terminal number for %s' % self._filepath)
 

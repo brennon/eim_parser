@@ -66,9 +66,8 @@ def main():
             collection = 'new_signals'
 
         # Otherwise, send it to the new_sessions collection
-        # TODO: Change to new_trials collection
         else:
-            collection = 'new_sessions'
+            collection = 'new_trials'
 
             # If this file doesn't pass muster, skip it
             if not check_json_file(f):

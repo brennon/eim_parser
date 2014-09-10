@@ -47,6 +47,7 @@ def main():
     # Iterate over collected files
     for (count, f) in enumerate(file_list):
         collection = None
+
         if re.search('[HRST]\d{3}.json', f):
             collection = 'new_signals'
         else:

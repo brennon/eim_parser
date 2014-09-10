@@ -3,11 +3,14 @@ from optparse import OptionParser
 from pprint import pprint
 
 def main():
+
+    # Setup option parsing
     usage = "usage: %prog [base_directory]"
     parser = OptionParser(usage=usage)
     parser.add_option('-d', '--dir', dest='root_dir', default=None, help='root directory for parsing')
     (options, args) = parser.parse_args()
 
+    # Configure file and STDOUT logging
     logger = logging.getLogger('json_compiler')
     logger.setLevel(logging.DEBUG)
     fh = logging.FileHandler('json_compiler.log')
@@ -20,21 +23,31 @@ def main():
     logger.addHandler(fh)
     logger.addHandler(ch)
 
+    # Use base directory if specified in options
     if options.root_dir:
         root_dir = options.root_dir
+
+    # Otherwise, use the current working directory
     else:
         root_dir = os.getcwd()
 
+    # Lists of files to parse/ignore
     file_list = list()
     ignored_files = list()
 
     # Iterate over all files below root_dir
     for root, dirs, files in os.walk(root_dir):
         for f in files:
+
+            # If file has .json extension
             if re.search('.json$', f):
+
+                # Add absolute path to file to file_list
                 filepath = os.path.abspath(os.path.join(root, f))
                 logger.debug('Adding %s to worklist' % filepath)
                 file_list.append(filepath)
+
+            # Otherwise, ignore it
             else:
                 ignored_files.append(f)
 
@@ -56,21 +69,31 @@ def main():
         signals_dict = dict()
         success = True
 
+        # Look for a 'prefix' in the filename, like 'T3_S0142'
         match = re.search('(.*T\d_S\d+)', f)
         if match:
+
+            # Set the base filename to <prefix>.json
             prefix = match.groups()[0]
             base_filename = '%s.json' % prefix
+
             # signals_filename = '%s_signals.json' % prefix
         else:
             success = False
 
+        # If we found a prefix and set the base filename
         if success:
 
+            # Open the file and load existing JSON into base_dict
             try:
                 base_file = open(base_filename, 'r')
                 base_dict = json.load(base_file)
+
+            # If that threw an exception, assign an empty dict to base_dict
             except:
                 base_dict = dict()
+
+
             finally:
                 if base_file and not base_file.closed:
                     base_file.close()
@@ -103,10 +126,17 @@ def main():
                 print_parsing_status(count + 1, total_files, f, logger)
 
                 try:
+                    # Open the file
                     info_file = open(f, 'r')
+
+                    # Load the JSON into a dict
                     info_json = json.load(info_file)
+
+                    # If metadata isn't complete in the base dictionary, get it from this file
                     if not metadata_is_complete(base_dict):
                         base_dict["metadata"] = info_json["metadata"]
+
+                    # Put info file-specific data into the base_dict
                     base_dict["media"] = info_json["media"]
                     base_dict["date"] = info_json["date"]
                     base_dict["timestamps"] = info_json["timestamps"]
@@ -173,10 +203,17 @@ def main():
                 print_parsing_status(count + 1, total_files, f, logger)
 
                 try:
+                    # Open the file
                     answer_file = open(f, 'r')
+
+                    # Load the JSON into a dict
                     answer_json = json.load(answer_file)
+
+                    # If metadata isn't complete in the base dictionary, get it from this file
                     if not metadata_is_complete(base_dict):
                         base_dict["metadata"] = answer_json["metadata"]
+
+                    # Put answer file-specific data into the base_dict
                     base_dict["answers"] = answer_json["answers"]
 
                 except Exception as e:

@@ -1,4 +1,4 @@
-import os, re, sys, pymongo, logging, json, cProfile
+import os, re, logging, json
 from optparse import OptionParser
 from subprocess import call
 

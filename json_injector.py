@@ -1,9 +1,9 @@
 import os, re, logging, json
 from optparse import OptionParser
 from subprocess import call
+from credentials import Credentials
 
 def main():
-
     # Configure OptionParser
     usage = "usage: %prog [base_directory]"
     parser = OptionParser(usage=usage)
@@ -76,7 +76,7 @@ def main():
 
         # Call `mongoimport` to send the file to the MongoDB server
         logger.info("Importing file (%d/%d) %s" % (count + 1, total_files, f))
-        call(['mongoimport', '-h', 'muse.cc.vt.edu', '-d', 'eim', '-c', collection, '-u', 'Credentials.databaseUsername', '-p', 'Credentials.databasePassword', '--authenticationDatabase', 'admin', '--file', f])
+        call(['mongoimport', '-h', 'localhost', '-d', 'eim', '-c', collection, '-u', Credentials.databaseUsername, '-p', Credentials.databasePassword, '--authenticationDatabase', 'admin', '--file', f])
 
 # Check validity of JSON file
 def check_json_file(filepath):

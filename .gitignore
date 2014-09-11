@@ -9,3 +9,4 @@ test_data/
 .idea/
 fake/
 .DS_Store
+credentials.py
